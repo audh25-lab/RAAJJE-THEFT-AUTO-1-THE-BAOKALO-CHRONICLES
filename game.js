@@ -1863,8 +1863,19 @@ function clearRainEffect() {
 
 // ==================== RENDERING ====================
 function render() {
-    // Clear canvas
-    ctx.fillStyle = '#1a3a4a';
+    // Initialize advanced graphics if not exists
+    if (!window.advancedRenderer) {
+        window.advancedRenderer = new AdvancedTileRenderer(TILE_SIZE);
+        window.weatherEffects = new WeatherEffects();
+    }
+    
+    // Get lighting factor
+    window.advancedRenderer.lighting.update();
+    const lightingFactor = window.advancedRenderer.lighting.getAmbientFactor();
+    const lightColor = window.advancedRenderer.lighting.getLightColor();
+    
+    // Clear canvas with time-of-day color
+    ctx.fillStyle = lightColor;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     
     // Save context for camera transform
@@ -1905,16 +1916,13 @@ function render() {
 function renderMap() {
     const map = MAPS[GameState.world.currentMap];
     
-    // Initialize tile renderer if not exists
-    if (!window.tileRenderer) {
-        window.tileRenderer = new TileRenderer(TILE_SIZE);
-    }
-    
     // Calculate visible tiles
     const startX = Math.floor(Camera.x / TILE_SIZE);
     const startY = Math.floor(Camera.y / TILE_SIZE);
     const endX = Math.ceil((Camera.x + CANVAS_WIDTH) / TILE_SIZE);
     const endY = Math.ceil((Camera.y + CANVAS_HEIGHT) / TILE_SIZE);
+    
+    const lightingFactor = window.advancedRenderer.lighting.getAmbientFactor();
     
     for (let y = startY; y <= endY && y < map.height; y++) {
         for (let x = startX; x <= endX && x < map.width; x++) {
@@ -1924,8 +1932,8 @@ function renderMap() {
             const screenX = x * TILE_SIZE;
             const screenY = y * TILE_SIZE;
             
-            // Use new GTA 2-style tile renderer
-            window.tileRenderer.renderTile(ctx, screenX, screenY, tile);
+            // Use advanced tile renderer with lighting
+            window.advancedRenderer.renderTile(ctx, screenX, screenY, tile, lightingFactor);
         }
     }
 }
@@ -1951,9 +1959,10 @@ function renderItems() {
 
 function renderNPCs() {
     currentNPCs.forEach(npc => {
-        // Use new GTA 2-style NPC renderer
+        // Use advanced NPC renderer
         const npcType = npc.type || 'civilian';
-        CharacterRenderer.drawNPC(ctx, npc.x, npc.y, npcType);
+        const frame = Math.floor((frameCount / 5) % 4);
+        AdvancedCharacterRenderer.drawNPC(ctx, npc.x, npc.y, npcType, frame);
         
         // Alert indicator
         if (npc.alerted) {
@@ -1975,8 +1984,9 @@ function renderNPCs() {
 
 function renderEnemies() {
     currentEnemies.forEach(enemy => {
-        // Use new GTA 2-style enemy renderer
-        CharacterRenderer.drawEnemy(ctx, enemy.x, enemy.y, enemy.type || 'thug');
+        // Use advanced enemy renderer
+        const frame = Math.floor((frameCount / 5) % 4);
+        AdvancedCharacterRenderer.drawEnemy(ctx, enemy.x, enemy.y, enemy.type || 'thug', frame);
         
         // Hit flash
         if (enemy.hitFlash > 0) {
@@ -2007,14 +2017,15 @@ function renderEnemies() {
 function renderPlayer() {
     const player = GameState.player;
     
-    // Use new GTA 2-style character renderer
+    // Use advanced character renderer
     const characterData = {
         color: '#8b4513',
         skinColor: '#d4a574',
         weapon: player.currentWeapon
     };
     
-    CharacterRenderer.drawCharacter(ctx, player.x, player.y, characterData, player.direction);
+    const frame = Math.floor((frameCount / 5) % 4);
+    AdvancedCharacterRenderer.drawCharacter(ctx, player.x, player.y, characterData, player.direction, frame);
     
     // Attack effect
     if (player.isAttacking) {
