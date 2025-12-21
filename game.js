@@ -52,7 +52,14 @@ const GameState = {
         weather: 'clear', // clear, cloudy, rain, storm
         heat: 0, // 0-5 police heat level
     },
-    
+    window.onerror = function(msg, url, line, col, error) {
+  console.error('Global error:', msg, 'at', url + ':' + line + ':' + col);
+  showNotification('Error', msg.slice(0,50));  // Fallback UI
+  return true;  // Prevent default
+};
+window.addEventListener('unhandledrejection', e => {
+  console.error('Promise reject:', e.reason);
+});
     // Gang relations
     gangs: {
         hulhuHustlers: { reputation: 0, allied: false },
