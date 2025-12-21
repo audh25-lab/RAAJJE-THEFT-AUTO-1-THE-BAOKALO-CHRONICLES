@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raajje Theft Auto 1: The Baokalo Chronicles - WebGL Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    // ==================== CUSTOM SHADERS ====================
+    const WaterShader = {
+        uniforms: {
+            time: { value: 0 },
+            waterColor: { value: new THREE.Color(0x0077be) },
+            foamColor: { value: new THREE.Color(0xffffff) }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            varying float vWave;
+            uniform float time;
+            void main() {
+                vUv = uv;
+                vec3 pos = position;
+                float wave1 = sin(pos.x * 2.0 + time) * 0.1;
+                float wave2 = sin(pos.y * 3.0 + time * 1.5) * 0.08;
+                pos.z += wave1 + wave2;
+                vWave = wave1 + wave2;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 waterColor;
+            uniform vec3 foamColor;
+            uniform float time;
+            varying vec2 vUv;
+            varying float vWave;
+            void main() {
+                vec3 color = waterColor;
+                float foam = smoothstep(0.1, 0.15, vWave);
+                color = mix(color, foamColor, foam * 0.3);
+                float sparkle = sin(vUv.x * 50.0 + time * 2.0) * sin(vUv.y * 50.0 + time * 2.0);
+                color += vec3(sparkle * 0.1);
+                gl_FragColor = vec4(color, 0.85);
+            }
+        `
+    };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Modern HUD */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #hud > * {
+            pointer-events: auto;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .stats-panel {
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,20,40,0.9) 100%);
+            border-radius: 16px;
+            padding: 16px 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        .stat-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .stat-icon {
+            font-size: 18px;
+            margin-right: 10px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .stat-bar-container {
+            width: 120px;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .stat-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .stat-bar.health { background: linear-gradient(90deg, #ff4444, #ff6666); }
+        .stat-bar.stamina { background: linear-gradient(90deg, #44ff44, #66ff66); }
+        .stat-bar.karma { background: linear-gradient(90deg, #4444ff, #6666ff); }
+        
+        .stat-value {
+            margin-left: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.8);
+            min-width: 40px;
+        }
+        
+        /* Money Display */
+        .money-display {
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,40,20,0.9) 100%);
+            border-radius: 16px;
+            padding: 16px 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100,255,100,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        .money-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #44ff88;
+            text-shadow: 0 0 20px rgba(68,255,136,0.5);
+        }
+        
+        .money-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        /* Minimap */
+        .minimap-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,20,40,0.9) 100%);
+            border-radius: 16px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+        }
+        
+        /* Mission Tracker */
+        .mission-tracker {
+            position: absolute;
+            bottom: 120px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(40,20,20,0.9) 100%);
+            border-radius: 16px;
+            padding: 16px 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,100,100,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            max-width: 300px;
+        }
+        
+        .mission-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff6666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .mission-objective {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.5;
+        }
+        
+        /* Touch Controls */
+        .touch-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        
+        .joystick-area {
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+        }
+        
+        .joystick-knob {
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            transition: transform 0.1s ease;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .action-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            color: #fff;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .action-btn:hover, .action-btn:active {
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            transform: scale(1.1);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        .action-btn.attack { border-color: rgba(255,100,100,0.5); }
+        .action-btn.interact { border-color: rgba(100,255,100,0.5); }
+        .action-btn.sprint { border-color: rgba(100,100,255,0.5); }
+        .action-btn.menu { border-color: rgba(255,255,100,0.5); }
+        
+        /* Dialogue Box */
+        .dialogue-box {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(20,20,40,0.95) 100%);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 16px 64px rgba(0,0,0,0.6);
+            display: none;
+        }
+        
+        .dialogue-box.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .dialogue-speaker {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffcc00;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .dialogue-text {
+            font-size: 16px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.6;
+        }
+        
+        .dialogue-continue {
+            margin-top: 16px;
+            text-align: right;
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        /* Main Menu */
+        #main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .menu-title {
+            font-size: 48px;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 40px rgba(255,200,100,0.5);
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .menu-subtitle {
+            font-size: 20px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 40px;
+            font-style: italic;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .menu-btn {
+            padding: 16px 48px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 280px;
+            text-align: center;
+        }
+        
+        .menu-btn.primary {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #000;
+        }
+        
+        .menu-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        
+        /* Loading Screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .loading-text {
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        
+        .loading-bar {
+            width: 300px;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff8c00);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Radio Display */
+        .radio-display {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(40,20,40,0.9) 100%);
+            border-radius: 12px;
+            padding: 12px 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,100,255,0.2);
+            display: none;
+        }
+        
+        .radio-display.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .radio-station {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff66ff;
+        }
+        
+        .radio-text {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 4px;
+        }
+        
+        /* Notification */
+        .notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(20,40,20,0.95) 100%);
+            border-radius: 20px;
+            padding: 32px 48px;
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(100,255,100,0.3);
+            box-shadow: 0 16px 64px rgba(0,0,0,0.6);
+            text-align: center;
+            display: none;
+            z-index: 500;
+        }
+        
+        .notification.active {
+            display: block;
+            animation: popIn 0.3s ease;
+        }
+        
+        @keyframes popIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        .notif-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #44ff88;
+            margin-bottom: 8px;
+        }
+        
+        .notif-text {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        /* Weather Overlay */
+        #weather-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loading-text">Loading Raajje Theft Auto...</div>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loading-progress"></div>
+            </div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div id="main-menu" class="hidden">
+            <div class="menu-title">🏝️ RAAJJE THEFT AUTO 1 🏝️</div>
+            <div class="menu-subtitle">The Baokalo Chronicles - WebGL Edition</div>
+            <div class="menu-buttons">
+                <button class="menu-btn primary" id="btn-new-game">🎮 New Game</button>
+                <button class="menu-btn secondary" id="btn-continue">📂 Continue</button>
+                <button class="menu-btn secondary" id="btn-load-act">📋 Load Act</button>
+                <button class="menu-btn secondary" id="btn-options">⚙️ Options</button>
+            </div>
+        </div>
+        
+        <!-- Game Canvas (Three.js) -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="top-bar">
+                <!-- Stats Panel -->
+                <div class="stats-panel">
+                    <div class="stat-row">
+                        <span class="stat-icon">❤️</span>
+                        <div class="stat-bar-container">
+                            <div class="stat-bar health" id="health-bar" style="width: 100%"></div>
+                        </div>
+                        <span class="stat-value" id="health-value">100</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">⚡</span>
+                        <div class="stat-bar-container">
+                            <div class="stat-bar stamina" id="stamina-bar" style="width: 100%"></div>
+                        </div>
+                        <span class="stat-value" id="stamina-value">100</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-icon">☯️</span>
+                        <div class="stat-bar-container">
+                            <div class="stat-bar karma" id="karma-bar" style="width: 50%"></div>
+                        </div>
+                        <span class="stat-value" id="karma-value">50</span>
+                    </div>
+                </div>
+                
+                <!-- Money Display -->
+                <div class="money-display">
+                    <div class="money-label">Faisaa</div>
+                    <div class="money-amount" id="money-amount">MVR 0</div>
+                </div>
+            </div>
+            
+            <!-- Minimap -->
+            <div class="minimap-container">
+                <canvas id="minimap-canvas"></canvas>
+            </div>
+            
+            <!-- Mission Tracker -->
+            <div class="mission-tracker" id="mission-tracker">
+                <div class="mission-title" id="mission-title">The First Score</div>
+                <div class="mission-objective" id="mission-objective">Find a target near the fish market</div>
+            </div>
+            
+            <!-- Touch Controls -->
+            <div class="touch-controls">
+                <div class="joystick-area" id="joystick-area">
+                    <div class="joystick-knob" id="joystick-knob"></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn attack" id="btn-attack">👊</button>
+                    <button class="action-btn interact" id="btn-interact">🤝</button>
+                    <button class="action-btn sprint" id="btn-sprint">🏃</button>
+                    <button class="action-btn menu" id="btn-pause">⏸️</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dialogue Box -->
+        <div class="dialogue-box" id="dialogue-box">
+            <div class="dialogue-speaker" id="dialogue-speaker">Rippoo (Mother)</div>
+            <div class="dialogue-text" id="dialogue-text">Baokalo, wake up. Mashakah need faisaa for rent.</div>
+            <div class="dialogue-continue">Click to continue ▶</div>
+        </div>
+        
+        <!-- Radio Display -->
+        <div class="radio-display" id="radio-display">
+            <div class="radio-station">📻 Raajje FM</div>
+            <div class="radio-text" id="radio-text">Playing: Island Vibes</div>
+        </div>
+        
+        <!-- Notification -->
+        <div class="notification" id="notification">
+            <div class="notif-title" id="notif-title">Mission Complete!</div>
+            <div class="notif-text" id="notif-text">+500 Faisaa</div>
+        </div>
+        
+        <!-- Weather Overlay -->
+        <div id="weather-overlay"></div>
+    </div>
+
+    <script>
+    // ==================== RAAJJE THEFT AUTO 1: WEBGL EDITION ====================
+    // Three.js Isometric Game Engine with Real-World Maldives Maps
+    // ============================================================================
+
+    // ==================== GAME STATE ====================
+    const GameState = {
+        currentAct: 1,
+        currentMission: 0,
+        isPlaying: false,
+        isPaused: false,
+        isInDialogue: false,
+        
+        player: {
+            x: 0, y: 0, z: 0,
+            speed: 0.15,
+            health: 100,
+            maxHealth: 100,
+            stamina: 100,
+            maxStamina: 100,
+            karma: 50,
+            familyMeter: 50,
+            money: 0,
+            direction: 0,
+            isMoving: false,
+            isSprinting: false
+        },
+        
+        world: {
+            currentMap: 'male_maafannu',
+            time: 10,
+            weather: 'clear'
+        },
+        
+        flags: {},
+        completedMissions: [],
+        choices: []
+    };
+
+    // ==================== REAL-WORLD MALDIVES MAP DATA ====================
+    // Accurate geographic data for Malé, Hulhumalé, and Addu
+    const MALDIVES_MAPS = {
+        male_maafannu: {
+            name: "Malé - Maafannu District",
+            description: "Western district of Malé, home to the fish market and ferry terminal",
+            width: 60,
+            height: 60,
+            // Real landmarks
+            landmarks: [
+                { name: "Fish Market", x: 10, z: 15, type: "market", color: 0x4ecdc4 },
+                { name: "Ferry Terminal", x: 5, z: 30, type: "dock", color: 0x8b6f47 },
+                { name: "Maafannu Stadium", x: 25, z: 10, type: "park", color: 0x4a8c4a },
+                { name: "Artificial Beach", x: 3, z: 45, type: "beach", color: 0xe8d4a0 },
+                { name: "Hulhu Hustlers HQ", x: 35, z: 25, type: "gang", color: 0xff4444 },
+                { name: "Ronda Family Home", x: 40, z: 35, type: "building", color: 0xa89968 },
+                { name: "Masjid-al-Sultan", x: 30, z: 40, type: "mosque", color: 0xe8d4b0 },
+                { name: "Police Station", x: 45, z: 15, type: "police", color: 0x4a5a8a }
+            ],
+            // Tile data: 0=water, 1=ground, 2=road, 3=building, 4=market, 5=dock, 6=park, 7=mosque, 8=gang, 9=beach
+            generateTiles: function() {
+                const tiles = [];
+                for (let z = 0; z < this.height; z++) {
+                    tiles[z] = [];
+                    for (let x = 0; x < this.width; x++) {
+                        // Default to ground
+                        let tile = 1;
+                        
+                        // Water border (ocean)
+                        if (x < 2 || z < 2 || x > this.width - 3 || z > this.height - 3) {
+                            tile = 0;
+                        }
+                        // Main roads (grid pattern like real Malé)
+                        else if (x % 8 === 0 || z % 10 === 0) {
+                            tile = 2;
+                        }
+                        // Buildings (dense urban area)
+                        else if ((x + z) % 3 === 0 && Math.random() > 0.3) {
+                            tile = 3;
+                        }
+                        
+                        tiles[z][x] = tile;
+                    }
+                }
+                
+                // Add landmarks
+                this.landmarks.forEach(lm => {
+                    const typeMap = { market: 4, dock: 5, park: 6, mosque: 7, gang: 8, beach: 9, building: 3, police: 3 };
+                    for (let dz = -2; dz <= 2; dz++) {
+                        for (let dx = -2; dx <= 2; dx++) {
+                            const tx = lm.x + dx;
+                            const tz = lm.z + dz;
+                            if (tx >= 0 && tx < this.width && tz >= 0 && tz < this.height) {
+                                tiles[tz][tx] = typeMap[lm.type] || 3;
+                            }
+                        }
+                    }
+                });
+                
+                return tiles;
+            },
+            spawnPoint: { x: 40, z: 35 }
+        },
+        
+        male_henveiru: {
+            name: "Malé - Henveiru District",
+            description: "Central district with government buildings and Sultan Park",
+            width: 60,
+            height: 60,
+            landmarks: [
+                { name: "Sultan Park", x: 20, z: 20, type: "park", color: 0x4a8c4a },
+                { name: "National Museum", x: 22, z: 18, type: "building", color: 0xd4a574 },
+                { name: "Friday Mosque", x: 25, z: 25, type: "mosque", color: 0xe8d4b0 },
+                { name: "Malé Sharks HQ", x: 40, z: 35, type: "gang", color: 0x4444ff },
+                { name: "Rippoo's Tea Shop", x: 15, z: 40, type: "market", color: 0xd4a574 }
+            ],
+            generateTiles: function() {
+                const tiles = [];
+                for (let z = 0; z < this.height; z++) {
+                    tiles[z] = [];
+                    for (let x = 0; x < this.width; x++) {
+                        let tile = 1;
+                        if (x < 2 || z < 2 || x > this.width - 3 || z > this.height - 3) tile = 0;
+                        else if (x % 7 === 0 || z % 9 === 0) tile = 2;
+                        else if ((x + z) % 3 === 0 && Math.random() > 0.4) tile = 3;
+                        tiles[z][x] = tile;
+                    }
+                }
+                this.landmarks.forEach(lm => {
+                    const typeMap = { market: 4, dock: 5, park: 6, mosque: 7, gang: 8, beach: 9, building: 3 };
+                    for (let dz = -2; dz <= 2; dz++) {
+                        for (let dx = -2; dx <= 2; dx++) {
+                            const tx = lm.x + dx;
+                            const tz = lm.z + dz;
+                            if (tx >= 0 && tx < this.width && tz >= 0 && tz < this.height) {
+                                tiles[tz][tx] = typeMap[lm.type] || 3;
+                            }
+                        }
+                    }
+                });
+                return tiles;
+            },
+            spawnPoint: { x: 30, z: 30 }
+        },
+        
+        hulhumale: {
+            name: "Hulhumalé",
+            description: "Reclaimed island city with modern grid layout",
+            width: 80,
+            height: 50,
+            landmarks: [
+                { name: "Central Park", x: 40, z: 25, type: "park", color: 0x4a8c4a },
+                { name: "Ferry Terminal", x: 10, z: 25, type: "dock", color: 0x8b6f47 },
+                { name: "Beach Area", x: 75, z: 25, type: "beach", color: 0xe8d4a0 },
+                { name: "Phase 2 Construction", x: 60, z: 40, type: "building", color: 0x888888 },
+                { name: "Hulhumalé Mosque", x: 35, z: 15, type: "mosque", color: 0xe8d4b0 }
+            ],
+            generateTiles: function() {
+                const tiles = [];
+                for (let z = 0; z < this.height; z++) {
+                    tiles[z] = [];
+                    for (let x = 0; x < this.width; x++) {
+                        let tile = 1;
+                        // Water border
+                        if (x < 2 || z < 2 || x > this.width - 3 || z > this.height - 3) tile = 0;
+                        // Grid roads (Hulhumalé has a perfect grid)
+                        else if (x % 6 === 0 || z % 6 === 0) tile = 2;
+                        // Modern buildings
+                        else if ((x + z) % 4 === 0 && Math.random() > 0.5) tile = 3;
+                        tiles[z][x] = tile;
+                    }
+                }
+                this.landmarks.forEach(lm => {
+                    const typeMap = { market: 4, dock: 5, park: 6, mosque: 7, gang: 8, beach: 9, building: 3 };
+                    for (let dz = -3; dz <= 3; dz++) {
+                        for (let dx = -3; dx <= 3; dx++) {
+                            const tx = lm.x + dx;
+                            const tz = lm.z + dz;
+                            if (tx >= 0 && tx < this.width && tz >= 0 && tz < this.height) {
+                                tiles[tz][tx] = typeMap[lm.type] || 3;
+                            }
+                        }
+                    }
+                });
+                return tiles;
+            },
+            spawnPoint: { x: 15, z: 25 }
+        },
+        
+        addu_hithadhoo: {
+            name: "Addu City - Hithadhoo",
+            description: "Largest island in Addu Atoll, connected by causeways",
+            width: 100,
+            height: 40,
+            landmarks: [
+                { name: "Hithadhoo Harbor", x: 10, z: 20, type: "dock", color: 0x8b6f47 },
+                { name: "Hithadhoo Mosque", x: 30, z: 15, type: "mosque", color: 0xe8d4b0 },
+                { name: "Kalo Oiy Territory", x: 50, z: 25, type: "gang", color: 0x000000 },
+                { name: "Link Road (Causeway)", x: 90, z: 20, type: "road", color: 0x555555 },
+                { name: "Hithadhoo Beach", x: 5, z: 35, type: "beach", color: 0xe8d4a0 }
+            ],
+            generateTiles: function() {
+                const tiles = [];
+                for (let z = 0; z < this.height; z++) {
+                    tiles[z] = [];
+                    for (let x = 0; x < this.width; x++) {
+                        let tile = 0; // Default water
+                        // Island shape (elongated)
+                        const islandCenter = this.height / 2;
+                        const distFromCenter = Math.abs(z - islandCenter);
+                        const islandWidth = 12 - Math.abs(x - 50) * 0.1;
+                        if (distFromCenter < islandWidth && x > 5 && x < 95) {
+                            tile = 1; // Ground
+                            // Main road through island
+                            if (z === Math.floor(islandCenter) || z === Math.floor(islandCenter) + 1) tile = 2;
+                            // Buildings
+                            else if (Math.random() > 0.7) tile = 3;
+                        }
+                        // Causeway to next island
+                        if (x > 90 && z >= 18 && z <= 22) tile = 2;
+                        tiles[z][x] = tile;
+                    }
+                }
+                this.landmarks.forEach(lm => {
+                    const typeMap = { market: 4, dock: 5, park: 6, mosque: 7, gang: 8, beach: 9, building: 3, road: 2 };
+                    for (let dz = -2; dz <= 2; dz++) {
+                        for (let dx = -2; dx <= 2; dx++) {
+                            const tx = lm.x + dx;
+                            const tz = lm.z + dz;
+                            if (tx >= 0 && tx < this.width && tz >= 0 && tz < this.height) {
+                                tiles[tz][tx] = typeMap[lm.type] || 3;
+                            }
+                        }
+                    }
+                });
+                return tiles;
+            },
+            spawnPoint: { x: 15, z: 20 }
+        }
+    };
+
+    // ==================== THREE.JS SETUP ====================
+    let scene, camera, renderer;
+    let playerMesh, groundMeshes = [], buildingMeshes = [], waterMesh;
+    let npcs = [], enemies = [];
+    let clock, deltaTime;
+    let isInitialized = false;
+
+    // Input state
+    const input = {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        sprint: false,
+        attack: false,
+        interact: false
+    };
+
+    // Joystick state
+    let joystickActive = false;
+    let joystickStartX = 0, joystickStartY = 0;
+    let joystickDeltaX = 0, joystickDeltaY = 0;
+
+    function initThreeJS() {
+        // Scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // Sky blue
+        scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
+
+        // Camera (Isometric-like perspective)
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(20, 25, 20);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer
+        const canvas = document.getElementById('game-canvas');
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 100, 50);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 500;
+        directionalLight.shadow.camera.left = -100;
+        directionalLight.shadow.camera.right = 100;
+        directionalLight.shadow.camera.top = 100;
+        directionalLight.shadow.camera.bottom = -100;
+        scene.add(directionalLight);
+
+        // Clock
+        clock = new THREE.Clock();
+
+        // Handle resize
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // ==================== MAP GENERATION ====================
+    function generateMap(mapKey) {
+        // Clear existing meshes
+        groundMeshes.forEach(m => scene.remove(m));
+        buildingMeshes.forEach(m => scene.remove(m));
+        if (waterMesh) scene.remove(waterMesh);
+        groundMeshes = [];
+        buildingMeshes = [];
+
+        const mapData = MALDIVES_MAPS[mapKey];
+        if (!mapData) return;
+
+        const tiles = mapData.generateTiles();
+        const tileSize = 1;
+
+        // Materials
+        const materials = {
+            water: new THREE.MeshStandardMaterial({ color: 0x2a7f9e, transparent: true, opacity: 0.8 }),
+            ground: new THREE.MeshStandardMaterial({ color: 0x8b7355 }),
+            road: new THREE.MeshStandardMaterial({ color: 0x4a4a4a }),
+            building: new THREE.MeshStandardMaterial({ color: 0xa89968 }),
+            market: new THREE.MeshStandardMaterial({ color: 0xd4a574 }),
+            dock: new THREE.MeshStandardMaterial({ color: 0x8b6f47 }),
+            park: new THREE.MeshStandardMaterial({ color: 0x4a8c4a }),
+            mosque: new THREE.MeshStandardMaterial({ color: 0xe8d4b0 }),
+            gang: new THREE.MeshStandardMaterial({ color: 0x4a3a2a }),
+            beach: new THREE.MeshStandardMaterial({ color: 0xe8d4a0 })
+        };
+
+        // Create water plane with shader
+        const waterGeometry = new THREE.PlaneGeometry(mapData.width * 2, mapData.height * 2, 64, 64);
+        const waterShaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                waterColor: { value: new THREE.Color(0x0077be) },
+                foamColor: { value: new THREE.Color(0xffffff) }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                varying float vWave;
+                uniform float time;
+                void main() {
+                    vUv = uv;
+                    vec3 pos = position;
+                    float wave1 = sin(pos.x * 2.0 + time) * 0.15;
+                    float wave2 = sin(pos.y * 3.0 + time * 1.5) * 0.1;
+                    pos.z += wave1 + wave2;
+                    vWave = wave1 + wave2;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 waterColor;
+                uniform vec3 foamColor;
+                uniform float time;
+                varying vec2 vUv;
+                varying float vWave;
+                void main() {
+                    vec3 color = waterColor;
+                    float foam = smoothstep(0.1, 0.2, vWave);
+                    color = mix(color, foamColor, foam * 0.4);
+                    float sparkle = sin(vUv.x * 80.0 + time * 3.0) * sin(vUv.y * 80.0 + time * 3.0);
+                    color += vec3(max(0.0, sparkle) * 0.15);
+                    gl_FragColor = vec4(color, 0.85);
+                }
+            `,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        waterMesh = new THREE.Mesh(waterGeometry, waterShaderMaterial);
+        waterMesh.rotation.x = -Math.PI / 2;
+        waterMesh.position.set(mapData.width / 2, -0.3, mapData.height / 2);
+        waterMesh.receiveShadow = true;
+        scene.add(waterMesh);
+        
+        // Store shader material reference for animation
+        window.waterShaderMaterial = waterShaderMaterial;
+
+        // Generate tiles
+        for (let z = 0; z < mapData.height; z++) {
+            for (let x = 0; x < mapData.width; x++) {
+                const tile = tiles[z][x];
+                if (tile === 0) continue; // Skip water tiles
+
+                // Ground tile
+                const groundGeometry = new THREE.BoxGeometry(tileSize, 0.2, tileSize);
+                let material;
+                switch (tile) {
+                    case 1: material = materials.ground; break;
+                    case 2: material = materials.road; break;
+                    case 3: material = materials.building; break;
+                    case 4: material = materials.market; break;
+                    case 5: material = materials.dock; break;
+                    case 6: material = materials.park; break;
+                    case 7: material = materials.mosque; break;
+                    case 8: material = materials.gang; break;
+                    case 9: material = materials.beach; break;
+                    default: material = materials.ground;
+                }
+
+                const groundMesh = new THREE.Mesh(groundGeometry, material);
+                groundMesh.position.set(x, 0, z);
+                groundMesh.receiveShadow = true;
+                scene.add(groundMesh);
+                groundMeshes.push(groundMesh);
+
+                // Add buildings with height
+                if (tile === 3 || tile === 4 || tile === 7) {
+                    const height = tile === 7 ? 3 : (tile === 4 ? 1.5 : 1 + Math.random() * 2);
+                    const buildingGeometry = new THREE.BoxGeometry(tileSize * 0.8, height, tileSize * 0.8);
+                    const buildingMesh = new THREE.Mesh(buildingGeometry, material.clone());
+                    buildingMesh.position.set(x, height / 2 + 0.1, z);
+                    buildingMesh.castShadow = true;
+                    buildingMesh.receiveShadow = true;
+                    scene.add(buildingMesh);
+                    buildingMeshes.push(buildingMesh);
+
+                    // Add windows to buildings
+                    if (tile === 3 && height > 1.5) {
+                        const windowMaterial = new THREE.MeshStandardMaterial({ color: 0xffff99, emissive: 0xffff44, emissiveIntensity: 0.3 });
+                        const windowGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.01);
+                        for (let wy = 0.5; wy < height - 0.3; wy += 0.5) {
+                            for (let wx = -0.2; wx <= 0.2; wx += 0.4) {
+                                const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial);
+                                windowMesh.position.set(x + wx, wy + 0.1, z + tileSize * 0.41);
+                                scene.add(windowMesh);
+                                buildingMeshes.push(windowMesh);
+                            }
+                        }
+                    }
+
+                    // Add dome to mosque
+                    if (tile === 7) {
+                        const domeGeometry = new THREE.SphereGeometry(0.4, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+                        const domeMaterial = new THREE.MeshStandardMaterial({ color: 0x4a9d6f });
+                        const domeMesh = new THREE.Mesh(domeGeometry, domeMaterial);
+                        domeMesh.position.set(x, height + 0.1, z);
+                        domeMesh.castShadow = true;
+                        scene.add(domeMesh);
+                        buildingMeshes.push(domeMesh);
+
+                        // Minaret
+                        const minaretGeometry = new THREE.CylinderGeometry(0.1, 0.15, 4, 8);
+                        const minaretMesh = new THREE.Mesh(minaretGeometry, new THREE.MeshStandardMaterial({ color: 0xc9a961 }));
+                        minaretMesh.position.set(x + 0.4, 2, z + 0.4);
+                        minaretMesh.castShadow = true;
+                        scene.add(minaretMesh);
+                        buildingMeshes.push(minaretMesh);
+                    }
+                }
+
+                // Add trees to parks
+                if (tile === 6) {
+                    const trunkGeometry = new THREE.CylinderGeometry(0.05, 0.08, 0.5, 8);
+                    const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8b6f47 });
+                    const trunkMesh = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                    trunkMesh.position.set(x + (Math.random() - 0.5) * 0.5, 0.35, z + (Math.random() - 0.5) * 0.5);
+                    trunkMesh.castShadow = true;
+                    scene.add(trunkMesh);
+                    buildingMeshes.push(trunkMesh);
+
+                    const foliageGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+                    const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x2d5a2d });
+                    const foliageMesh = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                    foliageMesh.position.set(trunkMesh.position.x, 0.8, trunkMesh.position.z);
+                    foliageMesh.castShadow = true;
+                    scene.add(foliageMesh);
+                    buildingMeshes.push(foliageMesh);
+                }
+            }
+        }
+
+        // Add landmark labels
+        mapData.landmarks.forEach(lm => {
+            // Create a simple marker
+            const markerGeometry = new THREE.ConeGeometry(0.3, 0.8, 4);
+            const markerMaterial = new THREE.MeshStandardMaterial({ color: lm.color || 0xff0000 });
+            const markerMesh = new THREE.Mesh(markerGeometry, markerMaterial);
+            markerMesh.position.set(lm.x, 4, lm.z);
+            markerMesh.rotation.x = Math.PI;
+            scene.add(markerMesh);
+            buildingMeshes.push(markerMesh);
+        });
+    }
+
+    // ==================== PLAYER ====================
+    function createPlayer() {
+        // Player body
+        const bodyGeometry = new THREE.BoxGeometry(0.4, 0.8, 0.3);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+        playerMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        playerMesh.castShadow = true;
+
+        // Player head
+        const headGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const headMaterial = new THREE.MeshStandardMaterial({ color: 0xd4a574 });
+        const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+        headMesh.position.y = 0.6;
+        headMesh.castShadow = true;
+        playerMesh.add(headMesh);
+
+        scene.add(playerMesh);
+
+        // Set initial position
+        const mapData = MALDIVES_MAPS[GameState.world.currentMap];
+        if (mapData) {
+            playerMesh.position.set(mapData.spawnPoint.x, 0.5, mapData.spawnPoint.z);
+            GameState.player.x = mapData.spawnPoint.x;
+            GameState.player.z = mapData.spawnPoint.z;
+        }
+    }
+
+    // ==================== NPCS ====================
+    function createNPC(x, z, type = 'civilian') {
+        const colors = {
+            civilian: 0x5a8fbe,
+            merchant: 0x9a8555,
+            gang: 0xcc3333,
+            police: 0x4a5a8a
+        };
+
+        const bodyGeometry = new THREE.BoxGeometry(0.35, 0.7, 0.25);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: colors[type] || 0x5a8fbe });
+        const npcMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        npcMesh.position.set(x, 0.45, z);
+        npcMesh.castShadow = true;
+
+        const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+        const headMaterial = new THREE.MeshStandardMaterial({ color: 0xd4a574 });
+        const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+        headMesh.position.y = 0.5;
+        npcMesh.add(headMesh);
+
+        scene.add(npcMesh);
+        npcs.push({ mesh: npcMesh, type, x, z });
+    }
+
+    // ==================== VEHICLES ====================
+    function createDhoni(x, z) {
+        const group = new THREE.Group();
+
+        // Hull
+        const hullGeometry = new THREE.BoxGeometry(2, 0.5, 0.8);
+        const hullMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+        const hullMesh = new THREE.Mesh(hullGeometry, hullMaterial);
+        hullMesh.position.y = 0.25;
+        group.add(hullMesh);
+
+        // Cabin
+        const cabinGeometry = new THREE.BoxGeometry(0.8, 0.4, 0.6);
+        const cabinMaterial = new THREE.MeshStandardMaterial({ color: 0xd4a574 });
+        const cabinMesh = new THREE.Mesh(cabinGeometry, cabinMaterial);
+        cabinMesh.position.set(-0.3, 0.7, 0);
+        group.add(cabinMesh);
+
+        // Mast
+        const mastGeometry = new THREE.CylinderGeometry(0.03, 0.03, 1.5, 8);
+        const mastMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355 });
+        const mastMesh = new THREE.Mesh(mastGeometry, mastMaterial);
+        mastMesh.position.set(0.2, 1.25, 0);
+        group.add(mastMesh);
+
+        group.position.set(x, 0, z);
+        scene.add(group);
+        return group;
+    }
+
+    function createMotorcycle(x, z) {
+        const group = new THREE.Group();
+
+        // Body
+        const bodyGeometry = new THREE.BoxGeometry(1.2, 0.3, 0.4);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        bodyMesh.position.y = 0.4;
+        group.add(bodyMesh);
+
+        // Wheels
+        const wheelGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+        const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+        
+        const frontWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        frontWheel.rotation.z = Math.PI / 2;
+        frontWheel.position.set(0.4, 0.2, 0);
+        group.add(frontWheel);
+
+        const backWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        backWheel.rotation.z = Math.PI / 2;
+        backWheel.position.set(-0.4, 0.2, 0);
+        group.add(backWheel);
+
+        // Seat
+        const seatGeometry = new THREE.BoxGeometry(0.4, 0.1, 0.3);
+        const seatMaterial = new THREE.MeshStandardMaterial({ color: 0xcc6633 });
+        const seatMesh = new THREE.Mesh(seatGeometry, seatMaterial);
+        seatMesh.position.set(-0.1, 0.6, 0);
+        group.add(seatMesh);
+
+        group.position.set(x, 0, z);
+        scene.add(group);
+        return group;
+    }
+
+    // ==================== INPUT HANDLING ====================
+    function setupInput() {
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            switch (e.code) {
+                case 'KeyW': case 'ArrowUp': input.forward = true; break;
+                case 'KeyS': case 'ArrowDown': input.backward = true; break;
+                case 'KeyA': case 'ArrowLeft': input.left = true; break;
+                case 'KeyD': case 'ArrowRight': input.right = true; break;
+                case 'ShiftLeft': case 'ShiftRight': input.sprint = true; break;
+                case 'Space': input.attack = true; break;
+                case 'KeyE': input.interact = true; break;
+                case 'Escape': togglePause(); break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': case 'ArrowUp': input.forward = false; break;
+                case 'KeyS': case 'ArrowDown': input.backward = false; break;
+                case 'KeyA': case 'ArrowLeft': input.left = false; break;
+                case 'KeyD': case 'ArrowRight': input.right = false; break;
+                case 'ShiftLeft': case 'ShiftRight': input.sprint = false; break;
+                case 'Space': input.attack = false; break;
+                case 'KeyE': input.interact = false; break;
+            }
+        });
+
+        // Touch joystick
+        const joystickArea = document.getElementById('joystick-area');
+        const joystickKnob = document.getElementById('joystick-knob');
+
+        joystickArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            joystickActive = true;
+            const touch = e.touches[0];
+            const rect = joystickArea.getBoundingClientRect();
+            joystickStartX = rect.left + rect.width / 2;
+            joystickStartY = rect.top + rect.height / 2;
+        });
+
+        joystickArea.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!joystickActive) return;
+            const touch = e.touches[0];
+            const maxDist = 50;
+            
+            joystickDeltaX = Math.max(-maxDist, Math.min(maxDist, touch.clientX - joystickStartX));
+            joystickDeltaY = Math.max(-maxDist, Math.min(maxDist, touch.clientY - joystickStartY));
+            
+            joystickKnob.style.transform = `translate(${joystickDeltaX}px, ${joystickDeltaY}px)`;
+            
+            // Update input based on joystick
+            const threshold = 15;
+            input.forward = joystickDeltaY < -threshold;
+            input.backward = joystickDeltaY > threshold;
+            input.left = joystickDeltaX < -threshold;
+            input.right = joystickDeltaX > threshold;
+        });
+
+        joystickArea.addEventListener('touchend', () => {
+            joystickActive = false;
+            joystickDeltaX = 0;
+            joystickDeltaY = 0;
+            joystickKnob.style.transform = 'translate(0, 0)';
+            input.forward = false;
+            input.backward = false;
+            input.left = false;
+            input.right = false;
+        });
+
+        // Action buttons
+        document.getElementById('btn-attack').addEventListener('touchstart', () => input.attack = true);
+        document.getElementById('btn-attack').addEventListener('touchend', () => input.attack = false);
+        document.getElementById('btn-interact').addEventListener('touchstart', () => input.interact = true);
+        document.getElementById('btn-interact').addEventListener('touchend', () => input.interact = false);
+        document.getElementById('btn-sprint').addEventListener('touchstart', () => input.sprint = true);
+        document.getElementById('btn-sprint').addEventListener('touchend', () => input.sprint = false);
+        document.getElementById('btn-pause').addEventListener('click', togglePause);
+    }
+
+    function togglePause() {
+        GameState.isPaused = !GameState.isPaused;
+        // Show/hide pause menu
+    }
+
+    // ==================== GAME LOOP ====================
+    function updatePlayer() {
+        if (!playerMesh || GameState.isPaused || GameState.isInDialogue) return;
+
+        const speed = input.sprint ? GameState.player.speed * 1.8 : GameState.player.speed;
+        let moved = false;
+
+        if (input.forward) { playerMesh.position.z -= speed; moved = true; }
+        if (input.backward) { playerMesh.position.z += speed; moved = true; }
+        if (input.left) { playerMesh.position.x -= speed; moved = true; }
+        if (input.right) { playerMesh.position.x += speed; moved = true; }
+
+        if (moved) {
+            GameState.player.isMoving = true;
+            // Update player direction
+            if (input.forward && input.left) playerMesh.rotation.y = Math.PI * 0.75;
+            else if (input.forward && input.right) playerMesh.rotation.y = Math.PI * 0.25;
+            else if (input.backward && input.left) playerMesh.rotation.y = Math.PI * 1.25;
+            else if (input.backward && input.right) playerMesh.rotation.y = Math.PI * 1.75;
+            else if (input.forward) playerMesh.rotation.y = Math.PI * 0.5;
+            else if (input.backward) playerMesh.rotation.y = Math.PI * 1.5;
+            else if (input.left) playerMesh.rotation.y = Math.PI;
+            else if (input.right) playerMesh.rotation.y = 0;
+
+            // Stamina drain when sprinting
+            if (input.sprint && GameState.player.stamina > 0) {
+                GameState.player.stamina -= 0.3;
+            }
+        } else {
+            GameState.player.isMoving = false;
+        }
+
+        // Stamina recovery
+        if (!input.sprint && GameState.player.stamina < GameState.player.maxStamina) {
+            GameState.player.stamina += 0.1;
+        }
+
+        // Update camera to follow player
+        camera.position.x = playerMesh.position.x + 15;
+        camera.position.z = playerMesh.position.z + 15;
+        camera.lookAt(playerMesh.position);
+
+        // Update game state
+        GameState.player.x = playerMesh.position.x;
+        GameState.player.z = playerMesh.position.z;
+    }
+
+    function updateNPCs() {
+        npcs.forEach(npc => {
+            // Simple wandering AI
+            if (Math.random() < 0.01) {
+                npc.mesh.position.x += (Math.random() - 0.5) * 0.5;
+                npc.mesh.position.z += (Math.random() - 0.5) * 0.5;
+            }
+        });
+    }
+
+    function updateWater() {
+        if (waterMesh && window.waterShaderMaterial) {
+            // Animate water shader
+            window.waterShaderMaterial.uniforms.time.value = Date.now() * 0.001;
+            
+            // Subtle position animation
+            waterMesh.position.y = -0.3 + Math.sin(Date.now() * 0.0005) * 0.02;
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('health-bar').style.width = `${GameState.player.health}%`;
+        document.getElementById('health-value').textContent = Math.round(GameState.player.health);
+        document.getElementById('stamina-bar').style.width = `${GameState.player.stamina}%`;
+        document.getElementById('stamina-value').textContent = Math.round(GameState.player.stamina);
+        document.getElementById('karma-bar').style.width = `${GameState.player.karma}%`;
+        document.getElementById('karma-value').textContent = Math.round(GameState.player.karma);
+        document.getElementById('money-amount').textContent = `MVR ${GameState.player.money.toLocaleString()}`;
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        if (!isInitialized || !GameState.isPlaying) return;
+
+        deltaTime = clock.getDelta();
+
+        updatePlayer();
+        updateNPCs();
+        updateWater();
+        updateHUD();
+
+        renderer.render(scene, camera);
+    }
+
+    // ==================== GAME INITIALIZATION ====================
+    function startGame() {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        
+        GameState.isPlaying = true;
+        GameState.player.money = 0;
+
+        // Generate map
+        generateMap(GameState.world.currentMap);
+
+        // Create player
+        createPlayer();
+
+        // Create some NPCs
+        const mapData = MALDIVES_MAPS[GameState.world.currentMap];
+        if (mapData) {
+            mapData.landmarks.forEach(lm => {
+                if (lm.type === 'market' || lm.type === 'dock') {
+                    createNPC(lm.x + 2, lm.z + 2, 'merchant');
+                }
+                if (lm.type === 'gang') {
+                    createNPC(lm.x + 1, lm.z + 1, 'gang');
+                    createNPC(lm.x - 1, lm.z - 1, 'gang');
+                }
+            });
+        }
+
+        // Create some vehicles
+        createDhoni(8, 30);
+        createMotorcycle(42, 33);
+
+        // Show intro dialogue
+        showDialogue('Rippoo (Mother)', 'Baokalo, wake up. Mashakah need faisaa for rent. Go find work at the fish market.');
+    }
+
+    function showDialogue(speaker, text) {
+        GameState.isInDialogue = true;
+        document.getElementById('dialogue-speaker').textContent = speaker;
+        document.getElementById('dialogue-text').textContent = text;
+        document.getElementById('dialogue-box').classList.add('active');
+    }
+
+    function hideDialogue() {
+        GameState.isInDialogue = false;
+        document.getElementById('dialogue-box').classList.remove('active');
+    }
+
+    function showNotification(title, text) {
+        document.getElementById('notif-title').textContent = title;
+        document.getElementById('notif-text').textContent = text;
+        document.getElementById('notification').classList.add('active');
+        setTimeout(() => {
+            document.getElementById('notification').classList.remove('active');
+        }, 3000);
+    }
+
+    // ==================== LOADING ====================
+    function simulateLoading() {
+        let progress = 0;
+        const loadingProgress = document.getElementById('loading-progress');
+        const loadingInterval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadingInterval);
+                setTimeout(() => {
+                    document.getElementById('loading-screen').classList.add('hidden');
+                    document.getElementById('main-menu').classList.remove('hidden');
+                }, 500);
+            }
+            loadingProgress.style.width = `${progress}%`;
+        }, 100);
+    }
+
+    // ==================== MAIN ====================
+    window.onload = function() {
+        initThreeJS();
+        setupInput();
+        isInitialized = true;
+
+        // Menu buttons
+        document.getElementById('btn-new-game').addEventListener('click', startGame);
+        document.getElementById('btn-continue').addEventListener('click', startGame);
+
+        // Dialogue click to continue
+        document.getElementById('dialogue-box').addEventListener('click', hideDialogue);
+
+        // Start animation loop
+        animate();
+
+        // Simulate loading
+        simulateLoading();
+    };
+    </script>
+</body>
+</html>
