@@ -817,5 +817,22 @@
     <script src="act8.js"></script>
     <script src="act9.js"></script>
     <script src="act10.js"></script>
+    <script>
+  // Auto-init after all scripts (sync load ensures order)
+  window.addEventListener('load', function() {
+    try {
+      console.log('Scripts loaded, calling init()');
+      if (typeof init === 'function') {
+        init();  // Starts gameLoop RAF
+      } else {
+        console.error('init() undefined - check game.js');
+        document.getElementById('loading-screen').innerHTML += '<br><span style="color:red;">Init failed!</span>';
+      }
+    } catch (e) {
+      console.error('Init error:', e);
+      showNotification('Load Error', e.message);  // Assumes showNotification exists
+    }
+  });
+</script>
 </body>
 </html>
