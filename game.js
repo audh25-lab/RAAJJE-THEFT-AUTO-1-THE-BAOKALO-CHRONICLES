@@ -1,4 +1,9 @@
- for (let x = zone.x; x < zone.x + zone.w && x < map.width; x++) {
+ function init() {
+  console.log('Init started', GameState);
+  // ... existing
+  console.log('Init complete, starting RAF');
+}
+for (let x = zone.x; x < zone.x + zone.w && x < map.width; x++) {
 // ============================================
 // RAAJJE THEFT AUTO 1: THE BAOKALO CHRONICLES
 // Complete Game Engine - Act 1: Maafannu Awakening
