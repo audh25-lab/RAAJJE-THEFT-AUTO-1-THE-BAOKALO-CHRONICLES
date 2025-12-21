@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raajje Theft Auto 1: The Baokalo Chronicles - Ultimate WebGL Edition</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #game-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        /* HUD Styles */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #hud > * {
+            pointer-events: auto;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        
+        .stats-panel {
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,20,40,0.9) 100%);
+            border-radius: 16px;
+            padding: 16px 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        .stat-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+        
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .stat-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .stat-bar-container {
+            width: 120px;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .stat-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .stat-bar.health { background: linear-gradient(90deg, #ff4444, #ff6666); }
+        .stat-bar.stamina { background: linear-gradient(90deg, #44ff44, #66ff66); }
+        .stat-bar.karma { background: linear-gradient(90deg, #4444ff, #6666ff); }
+        
+        .stat-value {
+            margin-left: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+            min-width: 40px;
+        }
+        
+        /* Money Display */
+        .money-display {
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,40,20,0.9) 100%);
+            border-radius: 16px;
+            padding: 16px 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100,255,100,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        .money-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #44ff88;
+            text-shadow: 0 0 20px rgba(68,255,136,0.5);
+        }
+        
+        .money-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        /* Minimap */
+        .minimap-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,20,40,0.9) 100%);
+            border-radius: 16px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+        }
+        
+        /* Mission Tracker */
+        .mission-tracker {
+            position: absolute;
+            bottom: 120px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(40,20,20,0.9) 100%);
+            border-radius: 16px;
+            padding: 16px 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,100,100,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            max-width: 300px;
+        }
+        
+        .mission-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff6666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .mission-objective {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.5;
+        }
+        
+        /* Touch Controls */
+        .touch-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        
+        .joystick-area {
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+        }
+        
+        .joystick-knob {
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            transition: transform 0.1s ease;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .action-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            color: #fff;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .action-btn:hover, .action-btn:active {
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            transform: scale(1.1);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        .action-btn.attack { border-color: rgba(255,100,100,0.5); }
+        .action-btn.interact { border-color: rgba(100,255,100,0.5); }
+        .action-btn.sprint { border-color: rgba(100,100,255,0.5); }
+        .action-btn.menu { border-color: rgba(255,255,100,0.5); }
+        
+        /* Dialogue Box */
+        .dialogue-box {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 600px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(20,20,40,0.95) 100%);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 16px 64px rgba(0,0,0,0.6);
+            display: none;
+        }
+        
+        .dialogue-box.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .dialogue-speaker {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffcc00;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .dialogue-text {
+            font-size: 16px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.6;
+        }
+        
+        .dialogue-continue {
+            margin-top: 16px;
+            text-align: right;
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <script type="module" src="./ultimate-webgl-main.js"></script>
+</body>
+</html>

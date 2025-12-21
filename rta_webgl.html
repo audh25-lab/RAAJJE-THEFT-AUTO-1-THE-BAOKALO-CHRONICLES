@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Raajje Theft Auto 1: The Baokalo Chronicles - WebGL Edition</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
     <script>
     // ==================== CUSTOM SHADERS ====================
     const WaterShader = {
@@ -540,6 +547,7 @@
 </head>
 <body>
     <div id="game-container">
+        <canvas id="game-canvas"></canvas>
         <!-- Loading Screen -->
         <div id="loading-screen">
             <div class="loading-text">Loading Raajje Theft Auto...</div>
@@ -1534,5 +1542,7 @@
         simulateLoading();
     };
     </script>
+    <script type="module" src="./webgl-renderer.js"></script>
+    <script type="module" src="./game-webgl.js"></script>
 </body>
 </html>
