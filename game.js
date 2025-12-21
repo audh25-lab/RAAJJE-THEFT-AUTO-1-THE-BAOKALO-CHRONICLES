@@ -3998,11 +3998,19 @@ function generatePoliticalMapTiles(mapKey) {
         else if (zoneKey.includes('yard') || zoneKey.includes('Yard')) tileType = 23;
         else if (zoneKey.includes('protest') || zoneKey.includes('Protest')) tileType = 24;
         
-        for (let y = zone.y; y < zone.y + zone.h && y < map.height; y++) {
-            for (let x = zone.x; x < zone.x + zone.w && x < map.width; x++) {
-                if (y >= 0 && x >= 0 && y < map.height && x < map.width) {
-                    map.tiles[y][x] = tileType;
-                }
+        // Inside generateMapTiles or initMap (wrap orphan if needed)
+for (let y = zone.y; y < zone.y + zone.h && y < map.height; y++) {
+    for (let x = zone.x; x < zone.x + zone.w && x < map.width; x++) {
+        if (y >= 0 && y < map.height && x >= 0 && x < map.width) {  // Bounds check
+            let zoneKey = zone.name.toLowerCase();  // Ensure defined
+            if (zoneKey.includes('mosque')) {
+                map.tiles[y][x] = 7; // Religious
+            } else if (zoneKey.includes('port') || zoneKey.includes('dock')) {
+                map.tiles[y][x] = 5; // Dock
+            } else if (zoneKey.includes('hq') || zoneKey.includes('outpost')) {
+                map.tiles[y][x] = 8; // Gang territory
+            } else {
+                map.tiles[y][x] = 4; // Generic zone
             }
         }
     }
@@ -6573,3 +6581,33 @@ setTimeout(() => {
 }, 900);
 
 console.log('Act 10 & Epilogue integration loaded');
+// Ensure core loop (if missing)
+let gameLoop = () => {
+    update();  // Your update func
+    render();  // Your render func
+    requestAnimationFrame(gameLoop);
+};
+
+// Fallbacks
+function showNotification(title, msg) {
+    // Simple alert fallback
+    const notif = document.createElement('div');
+    notif.innerHTML = `<div style="position:fixed;top:10px;right:10px;background:#ff6b6b;color:white;padding:10px;border-radius:5px;">${title}: ${msg}</div>`;
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 3000);
+}
+
+function init() {  // Ensure defined
+    console.log('Init started', GameState);
+    const canvas = document.getElementById('game-canvas');
+    window.ctx = canvas.getContext('2d');  // Global ctx
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    
+    // Gen initial map
+    generateMapTiles('male_maafannu');  // Call your gen func
+    
+    GameState.isPlaying = true;
+    requestAnimationFrame(gameLoop);
+    console.log('Init complete, starting RAF');
+}
