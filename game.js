@@ -1905,6 +1905,11 @@ function render() {
 function renderMap() {
     const map = MAPS[GameState.world.currentMap];
     
+    // Initialize tile renderer if not exists
+    if (!window.tileRenderer) {
+        window.tileRenderer = new TileRenderer(TILE_SIZE);
+    }
+    
     // Calculate visible tiles
     const startX = Math.floor(Camera.x / TILE_SIZE);
     const startY = Math.floor(Camera.y / TILE_SIZE);
@@ -1916,34 +1921,11 @@ function renderMap() {
             if (y < 0 || x < 0) continue;
             
             const tile = map.tiles[y][x];
-            let color;
+            const screenX = x * TILE_SIZE;
+            const screenY = y * TILE_SIZE;
             
-            switch (tile) {
-                case 0: color = '#0066aa'; break; // Water
-                case 1: color = '#8B7355'; break; // Ground
-                case 2: color = '#555555'; break; // Road
-                case 3: color = '#4a4a4a'; break; // Building
-                case 4: color = '#6B8E23'; break; // Market
-                case 5: color = '#8B4513'; break; // Dock
-                default: color = '#8B7355';
-            }
-            
-            ctx.fillStyle = color;
-            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            
-            // Add some texture
-            if (tile === 1 || tile === 4) {
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                if ((x + y) % 2 === 0) {
-                    ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                }
-            }
-            
-            // Water animation
-            if (tile === 0) {
-                ctx.fillStyle = `rgba(255,255,255,${0.1 + Math.sin(frameCount * 0.05 + x + y) * 0.05})`;
-                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            }
+            // Use new GTA 2-style tile renderer
+            window.tileRenderer.renderTile(ctx, screenX, screenY, tile);
         }
     }
 }
@@ -1969,22 +1951,15 @@ function renderItems() {
 
 function renderNPCs() {
     currentNPCs.forEach(npc => {
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath();
-        ctx.ellipse(npc.x, npc.y + 12, 12, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Sprite
-        ctx.font = '28px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(npc.sprite, npc.x, npc.y);
+        // Use new GTA 2-style NPC renderer
+        const npcType = npc.type || 'civilian';
+        CharacterRenderer.drawNPC(ctx, npc.x, npc.y, npcType);
         
         // Alert indicator
         if (npc.alerted) {
             ctx.fillStyle = '#ff0000';
             ctx.font = '16px Arial';
-            ctx.fillText('❗', npc.x, npc.y - 20);
+            ctx.fillText('!', npc.x, npc.y - 20);
         }
         
         // Interaction hint
@@ -1993,18 +1968,15 @@ function renderNPCs() {
         if (Math.sqrt(dx * dx + dy * dy) < 50) {
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
             ctx.font = '12px Arial';
-            ctx.fillText('[E] / 🤝', npc.x, npc.y - 25);
+            ctx.fillText('[E] / Talk', npc.x, npc.y - 25);
         }
     });
 }
 
 function renderEnemies() {
     currentEnemies.forEach(enemy => {
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath();
-        ctx.ellipse(enemy.x, enemy.y + 12, 12, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Use new GTA 2-style enemy renderer
+        CharacterRenderer.drawEnemy(ctx, enemy.x, enemy.y, enemy.type || 'thug');
         
         // Hit flash
         if (enemy.hitFlash > 0) {
@@ -2013,11 +1985,6 @@ function renderEnemies() {
             ctx.arc(enemy.x, enemy.y - 5, 20, 0, Math.PI * 2);
             ctx.fill();
         }
-        
-        // Sprite
-        ctx.font = '28px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(enemy.sprite, enemy.x, enemy.y);
         
         // Health bar
         const barWidth = 30;
@@ -2040,15 +2007,18 @@ function renderEnemies() {
 function renderPlayer() {
     const player = GameState.player;
     
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(player.x, player.y + 12, 14, 7, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Use new GTA 2-style character renderer
+    const characterData = {
+        color: '#8b4513',
+        skinColor: '#d4a574',
+        weapon: player.currentWeapon
+    };
+    
+    CharacterRenderer.drawCharacter(ctx, player.x, player.y, characterData, player.direction);
     
     // Attack effect
     if (player.isAttacking) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.strokeStyle = 'rgba(255,100,100,0.8)';
         ctx.lineWidth = 3;
         ctx.beginPath();
         const angle = getDirectionAngle(player.direction);
@@ -2056,31 +2026,10 @@ function renderPlayer() {
         ctx.stroke();
     }
     
-    // Player sprite
-    ctx.font = '32px Arial';
-    ctx.textAlign = 'center';
-    
-    // Walking animation
-    let sprite = SPRITES.baokalo;
-    if (player.isAttacking) {
-        sprite = SPRITES.baokaloAngry;
-    }
-    
-    // Flip based on direction
-    ctx.save();
-    if (player.direction === 'left') {
-        ctx.scale(-1, 1);
-        ctx.fillText(sprite, -player.x, player.y);
-    } else {
-        ctx.fillText(sprite, player.x, player.y);
-    }
-    ctx.restore();
-    
     // Sprint effect
     if (player.isSprinting && player.isMoving) {
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.font = '20px Arial';
-        ctx.fillText('💨', player.x - 20, player.y + 5);
+        ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
     }
 }
 
