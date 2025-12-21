@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raajje Theft Auto 1: The Baokalo Chronicles</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #game-canvas {
+            background: #1a3a4a;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        /* Main Menu Styles */
+        #main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #main-menu.hidden {
+            display: none;
+        }
+        
+        .menu-title {
+            font-size: clamp(24px, 6vw, 48px);
+            font-weight: bold;
+            color: #e0e1dd;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .menu-subtitle {
+            font-size: clamp(14px, 3vw, 24px);
+            color: #778da9;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .menu-btn {
+            width: clamp(200px, 60vw, 300px);
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: bold;
+            color: #e0e1dd;
+            background: linear-gradient(180deg, #415a77 0%, #1b263b 100%);
+            border: 2px solid #778da9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .menu-btn:hover, .menu-btn:active {
+            background: linear-gradient(180deg, #778da9 0%, #415a77 100%);
+            transform: scale(1.05);
+        }
+        
+        .menu-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* HUD Styles */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        #hud.hidden {
+            display: none;
+        }
+        
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+        }
+        
+        .hud-stat {
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: clamp(10px, 2.5vw, 14px);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .stat-bar {
+            width: 60px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .health-fill { background: linear-gradient(90deg, #ff4444, #ff6666); }
+        .stamina-fill { background: linear-gradient(90deg, #44ff44, #66ff66); }
+        .karma-fill { background: linear-gradient(90deg, #4444ff, #6666ff); }
+        
+        #mini-map {
+            position: absolute;
+            bottom: 100px;
+            right: 10px;
+            width: clamp(80px, 20vw, 150px);
+            height: clamp(80px, 20vw, 150px);
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #778da9;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        /* Touch Controls */
+        #touch-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            pointer-events: none;
+            z-index: 60;
+        }
+        
+        #touch-controls.hidden {
+            display: none;
+        }
+        
+        .joystick-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            pointer-events: auto;
+        }
+        
+        .joystick-base {
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            border: 3px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+        }
+        
+        .joystick-stick {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: none;
+        }
+        
+        .action-buttons {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            pointer-events: auto;
+        }
+        
+        .action-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border: 3px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        
+        .action-btn:active {
+            background: rgba(255,255,255,0.5);
+            transform: scale(0.9);
+        }
+        
+        .action-btn.attack { border-color: #ff6666; }
+        .action-btn.interact { border-color: #66ff66; }
+        .action-btn.sprint { border-color: #6666ff; }
+        .action-btn.menu { border-color: #ffff66; }
+        
+        /* Dialogue Box */
+        #dialogue-box {
+            position: absolute;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: clamp(280px, 90vw, 600px);
+            background: rgba(0,0,0,0.9);
+            border: 2px solid #778da9;
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 70;
+        }
+        
+        #dialogue-box.hidden {
+            display: none;
+        }
+        
+        .dialogue-speaker {
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: bold;
+            color: #778da9;
+            margin-bottom: 8px;
+        }
+        
+        .dialogue-text {
+            font-size: clamp(14px, 3.5vw, 18px);
+            color: #e0e1dd;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        
+        .dialogue-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .dialogue-choice {
+            padding: 10px;
+            background: rgba(65, 90, 119, 0.5);
+            border: 1px solid #778da9;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: clamp(12px, 3vw, 14px);
+            color: #e0e1dd;
+            pointer-events: auto;
+        }
+        
+        .dialogue-choice:hover, .dialogue-choice:active {
+            background: rgba(119, 141, 169, 0.5);
+        }
+        
+        .dialogue-choice.karma-good { border-left: 4px solid #66ff66; }
+        .dialogue-choice.karma-bad { border-left: 4px solid #ff6666; }
+        
+        /* Mission Tracker */
+        #mission-tracker {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            max-width: clamp(150px, 40vw, 250px);
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #ffcc00;
+        }
+        
+        #mission-tracker.hidden {
+            display: none;
+        }
+        
+        .mission-title {
+            font-size: clamp(10px, 2.5vw, 14px);
+            font-weight: bold;
+            color: #ffcc00;
+            margin-bottom: 5px;
+        }
+        
+        .mission-objective {
+            font-size: clamp(9px, 2vw, 12px);
+            color: #e0e1dd;
+        }
+        
+        /* Notification */
+        #notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 2px solid #ffcc00;
+            text-align: center;
+            z-index: 80;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        
+        #notification.show {
+            opacity: 1;
+        }
+        
+        .notif-title {
+            font-size: clamp(16px, 4vw, 24px);
+            font-weight: bold;
+            color: #ffcc00;
+            margin-bottom: 10px;
+        }
+        
+        .notif-text {
+            font-size: clamp(12px, 3vw, 16px);
+            color: #e0e1dd;
+        }
+        
+        /* Sub-menus */
+        .sub-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 27, 42, 0.95);
+            display: flex;
+            flex-direction: column;
+            z-index: 90;
+            overflow-y: auto;
+        }
+        
+        .sub-menu.hidden {
+            display: none;
+        }
+        
+        .sub-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(0,0,0,0.5);
+            border-bottom: 2px solid #778da9;
+        }
+        
+        .sub-menu-title {
+            font-size: clamp(18px, 4vw, 24px);
+            font-weight: bold;
+            color: #e0e1dd;
+        }
+        
+        .close-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,100,100,0.3);
+            border: 2px solid #ff6666;
+            border-radius: 50%;
+            color: #ff6666;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .sub-menu-content {
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        /* Codex */
+        .codex-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .codex-tab {
+            padding: 8px 15px;
+            background: rgba(65, 90, 119, 0.3);
+            border: 1px solid #778da9;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: clamp(10px, 2.5vw, 14px);
+            color: #e0e1dd;
+        }
+        
+        .codex-tab.active {
+            background: rgba(119, 141, 169, 0.5);
+        }
+        
+        .codex-entry {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .codex-entry-title {
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: bold;
+            color: #778da9;
+            margin-bottom: 8px;
+        }
+        
+        .codex-entry-text {
+            font-size: clamp(12px, 2.5vw, 14px);
+            color: #e0e1dd;
+            line-height: 1.5;
+        }
+        
+        /* Upgrades */
+        .upgrade-tree {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .upgrade-category {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #778da9;
+        }
+        
+        .upgrade-category-title {
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: bold;
+            color: #ffcc00;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .upgrade-item {
+            padding: 10px;
+            background: rgba(65, 90, 119, 0.3);
+            border: 1px solid #778da9;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        
+        .upgrade-item:hover {
+            background: rgba(119, 141, 169, 0.3);
+        }
+        
+        .upgrade-item.unlocked {
+            border-color: #66ff66;
+            background: rgba(102, 255, 102, 0.1);
+        }
+        
+        .upgrade-item.locked {
+            opacity: 0.5;
+        }
+        
+        .upgrade-name {
+            font-size: clamp(11px, 2.5vw, 14px);
+            font-weight: bold;
+            color: #e0e1dd;
+        }
+        
+        .upgrade-cost {
+            font-size: clamp(10px, 2vw, 12px);
+            color: #ffcc00;
+        }
+        
+        /* Mini-game overlay */
+        #minigame-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 85;
+        }
+        
+        #minigame-overlay.hidden {
+            display: none;
+        }
+        
+        .minigame-title {
+            font-size: clamp(20px, 5vw, 32px);
+            font-weight: bold;
+            color: #ffcc00;
+            margin-bottom: 20px;
+        }
+        
+        #minigame-canvas {
+            border: 3px solid #778da9;
+            border-radius: 10px;
+        }
+        
+        .minigame-score {
+            font-size: clamp(14px, 3vw, 20px);
+            color: #e0e1dd;
+            margin-top: 15px;
+        }
+        
+        /* Radio */
+        #radio-display {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #778da9;
+            max-width: 200px;
+        }
+        
+        #radio-display.hidden {
+            display: none;
+        }
+        
+        .radio-station {
+            font-size: clamp(10px, 2.5vw, 12px);
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        
+        .radio-text {
+            font-size: clamp(9px, 2vw, 11px);
+            color: #e0e1dd;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        /* Weather overlay */
+        #weather-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 40;
+        }
+        
+        .rain-drop {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background: linear-gradient(transparent, rgba(174, 194, 224, 0.6));
+            animation: rain-fall linear infinite;
+        }
+        
+        @keyframes rain-fall {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+        
+        /* Loading screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        
+        #loading-screen.hidden {
+            display: none;
+        }
+        
+        .loading-text {
+            font-size: clamp(16px, 4vw, 24px);
+            color: #778da9;
+            margin-bottom: 20px;
+        }
+        
+        .loading-bar {
+            width: clamp(200px, 60vw, 400px);
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .loading-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #415a77, #778da9);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Pause menu */
+        #pause-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 95;
+        }
+        
+        #pause-menu.hidden {
+            display: none;
+        }
+        
+        .pause-title {
+            font-size: clamp(24px, 6vw, 36px);
+            font-weight: bold;
+            color: #e0e1dd;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loading-text">Loading Raajje Theft Auto...</div>
+            <div class="loading-bar">
+                <div class="loading-fill" id="loading-fill"></div>
+            </div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div id="main-menu" class="hidden">
+            <div class="menu-title">🏝️ RAAJJE THEFT AUTO 1 🏝️</div>
+            <div class="menu-subtitle">The Baokalo Chronicles</div>
+            <button class="menu-btn" id="btn-new-game">🎮 New Game</button>
+            <button class="menu-btn" id="btn-continue" disabled>📂 Continue</button>
+            <button class="menu-btn" id="btn-load-act">📋 Load Act</button>
+            <button class="menu-btn" id="btn-codex">📚 Codex</button>
+            <button class="menu-btn" id="btn-upgrades">⬆️ Upgrades</button>
+            <button class="menu-btn" id="btn-options">⚙️ Options</button>
+            <button class="menu-btn" id="btn-achievements">🏆 Achievements</button>
+        </div>
+        
+        <!-- Game Canvas -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="hud-top">
+                <div class="hud-stat">
+                    ❤️ <div class="stat-bar"><div class="stat-fill health-fill" id="health-bar" style="width: 100%"></div></div>
+                </div>
+                <div class="hud-stat">
+                    ⚡ <div class="stat-bar"><div class="stat-fill stamina-fill" id="stamina-bar" style="width: 100%"></div></div>
+                </div>
+                <div class="hud-stat">
+                    ☯️ <div class="stat-bar"><div class="stat-fill karma-fill" id="karma-bar" style="width: 50%"></div></div>
+                </div>
+                <div class="hud-stat">
+                    💰 <span id="money-display">0</span>
+                </div>
+            </div>
+            <div id="mini-map">
+                <canvas id="minimap-canvas"></canvas>
+            </div>
+        </div>
+        
+        <!-- Mission Tracker -->
+        <div id="mission-tracker" class="hidden">
+            <div class="mission-title" id="mission-title">Mission</div>
+            <div class="mission-objective" id="mission-objective">Objective</div>
+        </div>
+        
+        <!-- Dialogue Box -->
+        <div id="dialogue-box" class="hidden">
+            <div class="dialogue-speaker" id="dialogue-speaker">Speaker</div>
+            <div class="dialogue-text" id="dialogue-text">Text</div>
+            <div class="dialogue-choices" id="dialogue-choices"></div>
+        </div>
+        
+        <!-- Touch Controls -->
+        <div id="touch-controls" class="hidden">
+            <div class="joystick-container" id="joystick-container">
+                <div class="joystick-base">
+                    <div class="joystick-stick" id="joystick-stick"></div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn attack" id="btn-attack">👊</button>
+                <button class="action-btn interact" id="btn-interact">🤝</button>
+                <button class="action-btn sprint" id="btn-sprint">🏃</button>
+                <button class="action-btn menu" id="btn-pause">⏸️</button>
+            </div>
+        </div>
+        
+        <!-- Notification -->
+        <div id="notification">
+            <div class="notif-title" id="notif-title">Title</div>
+            <div class="notif-text" id="notif-text">Text</div>
+        </div>
+        
+        <!-- Radio Display -->
+        <div id="radio-display" class="hidden">
+            <div class="radio-station" id="radio-station">📻 Raajje FM</div>
+            <div class="radio-text" id="radio-text">Loading...</div>
+        </div>
+        
+        <!-- Weather Overlay -->
+        <div id="weather-overlay"></div>
+        
+        <!-- Mini-game Overlay -->
+        <div id="minigame-overlay" class="hidden">
+            <div class="minigame-title" id="minigame-title">Mini-Game</div>
+            <canvas id="minigame-canvas" width="400" height="300"></canvas>
+            <div class="minigame-score" id="minigame-score">Score: 0</div>
+        </div>
+        
+        <!-- Pause Menu -->
+        <div id="pause-menu" class="hidden">
+            <div class="pause-title">⏸️ PAUSED</div>
+            <button class="menu-btn" id="btn-resume">▶️ Resume</button>
+            <button class="menu-btn" id="btn-save">💾 Save Game</button>
+            <button class="menu-btn" id="btn-load">📂 Load Game</button>
+            <button class="menu-btn" id="btn-options-pause">⚙️ Options</button>
+            <button class="menu-btn" id="btn-quit">🚪 Quit to Menu</button>
+        </div>
+        
+        <!-- Sub-menus -->
+        <div id="codex-menu" class="sub-menu hidden">
+            <div class="sub-menu-header">
+                <div class="sub-menu-title">📚 Codex</div>
+                <button class="close-btn" onclick="closeSubMenu('codex-menu')">✕</button>
+            </div>
+            <div class="sub-menu-content" id="codex-content"></div>
+        </div>
+        
+        <div id="upgrades-menu" class="sub-menu hidden">
+            <div class="sub-menu-header">
+                <div class="sub-menu-title">⬆️ Upgrades</div>
+                <button class="close-btn" onclick="closeSubMenu('upgrades-menu')">✕</button>
+            </div>
+            <div class="sub-menu-content" id="upgrades-content"></div>
+        </div>
+        
+        <div id="options-menu" class="sub-menu hidden">
+            <div class="sub-menu-header">
+                <div class="sub-menu-title">⚙️ Options</div>
+                <button class="close-btn" onclick="closeSubMenu('options-menu')">✕</button>
+            </div>
+            <div class="sub-menu-content" id="options-content"></div>
+        </div>
+        
+        <div id="achievements-menu" class="sub-menu hidden">
+            <div class="sub-menu-header">
+                <div class="sub-menu-title">🏆 Achievements</div>
+                <button class="close-btn" onclick="closeSubMenu('achievements-menu')">✕</button>
+            </div>
+            <div class="sub-menu-content" id="achievements-content"></div>
+        </div>
+        
+        <div id="load-act-menu" class="sub-menu hidden">
+            <div class="sub-menu-header">
+                <div class="sub-menu-title">📋 Load Act</div>
+                <button class="close-btn" onclick="closeSubMenu('load-act-menu')">✕</button>
+            </div>
+            <div class="sub-menu-content" id="load-act-content"></div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+    <script src="act2.js"></script>
+    <script src="act3.js"></script>
+    <script src="act4.js"></script>
+    <script src="act5.js"></script>
+    <script src="act6.js"></script>
+    <script src="act7.js"></script>
+    <script src="act8.js"></script>
+    <script src="act9.js"></script>
+    <script src="act10.js"></script>
+</body>
+</html>
