@@ -1,7 +1,7 @@
 // maldives-game-complete.js
 // Simplified version for debugging module imports
 
-import * as THREE from 'three';
+// THREE is loaded globally via CDN in maldives-complete.html
 import { VoxelRenderer } from './voxel-renderer.js';
 import { OSMProcessor } from './osm-processor.js';
 import { PlayerPhysics } from './player-physics.js';
