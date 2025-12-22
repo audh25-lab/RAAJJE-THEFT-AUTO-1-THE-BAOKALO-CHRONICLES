@@ -16,8 +16,8 @@ import { VoxelRenderer } from './voxel-renderer.js';
 // import { ChatSystem } from './chat-system.js';
 // console.log('Loading GraphicsSearchSystem...');
 // import { GraphicsSearchSystem } from './graphics-search-system.js';
-// console.log('Loading UIHud...');
-// import { UIHud } from './ui-hud.js';
+console.log('Loading UIHud...');
+import { UIHud } from './ui-hud.js';
 console.log('Loading VehicleManager...');
 import { VehicleManager } from './vehicle-physics.js';
 // console.log('Loading AdvancedShaders...');
@@ -61,8 +61,7 @@ class MaldivesGameComplete {
             new MissionManager();
             new ChatSystem();
             new GraphicsSearchSystem();
-            new UIHud();
-          new VehicleManager(this.scene);       // new AdvancedShaders();
+           new UIHud();         new VehicleManager(this.scene);       // new AdvancedShaders();
             // new AudioSystem();
             // new GameStateManager();         console.log('All modules instantiated successfully.');
         } catch (e) {
