@@ -2,32 +2,32 @@
 // Simplified version for debugging module imports
 
 // THREE is loaded globally via CDN in maldives-complete.html
-console.log('Loading VoxelRenderer...');
-import { VoxelRenderer } from './voxel-renderer.js';
-console.log('Loading OSMProcessor...');
-import { OSMProcessor } from './osm-processor.js';
-console.log('Loading PlayerPhysics...');
-import { PlayerPhysics } from './player-physics.js';
-console.log('Loading NPCManager...');
-import { NPCManager } from './npc-ai.js';
-console.log('Loading MissionManager...');
-import { MissionManager } from './mission-system.js';
-console.log('Loading ChatSystem...');
-import { ChatSystem } from './chat-system.js';
-console.log('Loading GraphicsSearchSystem...');
-import { GraphicsSearchSystem } from './graphics-search-system.js';
-console.log('Loading UIHud...');
-import { UIHud } from './ui-hud.js';
-console.log('Loading VehicleManager...');
-import { VehicleManager } from './vehicle-physics.js';
-console.log('Loading AdvancedShaders...');
-import { AdvancedShaders } from './advanced-shaders.js';
-console.log('Loading AudioSystem...');
-import { AudioSystem } from './audio-system.js';
-console.log('Loading GameStateManager...');
-import { GameStateManager } from './game-state-manager.js';
+// console.log('Loading VoxelRenderer...');
+// import { VoxelRenderer } from './voxel-renderer.js';
+// console.log('Loading OSMProcessor...');
+// import { OSMProcessor } from './osm-processor.js';
+// console.log('Loading PlayerPhysics...');
+// import { PlayerPhysics } from './player-physics.js';
+// console.log('Loading NPCManager...');
+// import { NPCManager } from './npc-ai.js';
+// console.log('Loading MissionManager...');
+// import { MissionManager } from './mission-system.js';
+// console.log('Loading ChatSystem...');
+// import { ChatSystem } from './chat-system.js';
+// console.log('Loading GraphicsSearchSystem...');
+// import { GraphicsSearchSystem } from './graphics-search-system.js';
+// console.log('Loading UIHud...');
+// import { UIHud } from './ui-hud.js';
+// console.log('Loading VehicleManager...');
+// import { VehicleManager } from './vehicle-physics.js';
+// console.log('Loading AdvancedShaders...');
+// import { AdvancedShaders } from './advanced-shaders.js';
+// console.log('Loading AudioSystem...');
+// import { AudioSystem } from './audio-system.js';
+// console.log('Loading GameStateManager...');
+// import { GameStateManager } from './game-state-manager.js';
 
-console.log('All modules imported successfully.');
+console.log('All modules imported successfully. (Test 1: No Imports)');
 
 class MaldivesGameComplete {
     constructor() {
