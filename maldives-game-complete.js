@@ -12,8 +12,8 @@ import { VoxelRenderer } from './voxel-renderer.js';
 // import { NPCManager } from './npc-ai.js';
 // console.log('Loading MissionManager...');
 // import { MissionManager } from './mission-system.js';
-// console.log('Loading ChatSystem...');
-// import { ChatSystem } from './chat-system.js';
+console.log('Loading ChatSystem...');
+import { ChatSystem } from './chat-system.js';
 console.log('Loading GraphicsSearchSystem...');
 import { GraphicsSearchSystem } from './graphics-search-system.js';
 console.log('Loading UIHud...');
@@ -59,8 +59,7 @@ class MaldivesGameComplete {
             new PlayerPhysics(this.scene, null);
             new NPCManager(this.scene);
             new MissionManager();
-            new ChatSystem();
-          new GraphicsSearchSystem();           new UIHud();         new VehicleManager(this.scene);       // new AdvancedShaders();
+          new ChatSystem();          new GraphicsSearchSystem();           new UIHud();         new VehicleManager(this.scene);       // new AdvancedShaders();
             // new AudioSystem();
             // new GameStateManager();         console.log('All modules instantiated successfully.');
         } catch (e) {
