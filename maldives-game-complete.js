@@ -22,8 +22,8 @@ import { VoxelRenderer } from './voxel-renderer.js';
 // import { VehicleManager } from './vehicle-physics.js';
 // console.log('Loading AdvancedShaders...');
 // import { AdvancedShaders } from './advanced-shaders.js';
-// console.log('Loading AudioSystem...');
-// import { AudioSystem } from './audio-system.js';
+console.log('Loading AudioSystem...');
+import { AudioSystem } from './audio-system.js';
 console.log('Loading GameStateManager...');
 import { GameStateManager } from './game-state-manager.js';
 
@@ -64,8 +64,7 @@ class MaldivesGameComplete {
             new UIHud();
             new VehicleManager(this.scene);
             new AdvancedShaders();
-            new AudioSystem();
-          new GameStateManager();            console.log('All modules instantiated successfully.');
+           new AudioSystem();         new GameStateManager();            console.log('All modules instantiated successfully.');
         } catch (e) {
             console.error('Module instantiation failed:', e);
         }
