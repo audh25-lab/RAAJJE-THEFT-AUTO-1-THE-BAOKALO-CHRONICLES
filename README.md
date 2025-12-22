@@ -1,138 +1,100 @@
-# 🏝️ Raajje Theft Auto 1: The Baokalo Chronicles
+# 🇲🇻 RAAJJE THEFT AUTO 1: THE BAOKALO CHRONICLES - MALDIVIAN EDITION
 
-## Complete Web Prototype
-
-A 100% self-contained HTML/CSS/JavaScript game set in the Maldives, following the rise and fall of Baokalo, a gang leader navigating politics, family, and morality across 10 Acts + Epilogue.
+## 🚀 Play Now: Live Demo Here (Placeholder - See Step 5)
 
 ---
 
-## 🎮 Features
+## 🖼️ Promotional Cover
+
+<!-- Placeholder for the GTA Vice City-style parody cover image -->
+![Promotional Cover Image Placeholder](assets/images/cover_image.md)
+
+---
+
+## 🌟 Overview: The Maldivian Edition
+
+This repository contains the latest, most advanced version of Raajje Theft Auto 1, known as the **Maldivian Edition**. It transforms the original prototype into a high-fidelity, culturally rich experience using modern web technologies.
+
+### Core Technology
+- **Rendering**: Three.js (WebGL)
+- **Graphics**: High-resolution **Voxel Art** for a detailed pixel-perfect aesthetic.
+- **Mapping**: Integration of **OpenStreetMap (OSM)** data for geographically accurate Malé and Hulhumale city layouts.
+- **Content**: Authentic Maldivian architecture, local vehicles (Dhoni boats), and character archetypes.
+- **Features**: Integrated **In-Game Chat** and **Graphics Asset Search** systems.
+
+---
+
+## 🎮 Features (Updated)
 
 ### Core Gameplay
-- **Canvas-based rendering** at 60fps
-- **Tile-based maps** with zone detection
-- **Emoji sprite characters** (no external assets)
-- **Mobile-optimized touch controls** (virtual joystick + action buttons)
-- **Keyboard support** (WASD/Arrows, Space, E, Shift, Escape)
+- **Voxel-based rendering** at 60fps with a pixel-art aesthetic.
+- **3D Isometric Maps** based on real Maldivian geography.
+- **Local Assets**: Dhoni boats, Maldivian buildings, and characters.
+- **Mobile-optimized touch controls** (virtual joystick + action buttons).
+- **Keyboard support** (WASD/Arrows, Space, E, Shift, Escape).
 
-### Story & Progression
+### Story & Progression (Still Relevant)
 - **10 Acts + Epilogue** spanning 2015-2025
 - **150+ main missions** across all acts
-- **300+ side missions** (procedural/abstracted)
 - **4 distinct endings** based on karma and choices:
   - 👑 **Tyrant** - Seize power, become dictator
   - ⛓️ **Puppet** - Serve Mooizbe, get betrayed
   - 🌅 **Redemption** - Break the cycle, find peace
   - 🕯️ **Martyr** - Sacrifice for Raajje
 
-### Characters
-- **Ronda Family**: Baokalo (protagonist), Rippoo (mother), Nunnu (sister), DhoDho (uncle)
-- **Politicians**: President Mooizbe, Opposition Leader Alibe, MP Jabibe
-- **Influencers**: Rishbe (Instagram), Shalube (TikTok)
-- **Half-brother**: Muaz (revealed in Act 5)
-- **83 gangs** across Malé (44-45), Addu (12), and Atolls (26)
-
-### Moral Choice System
-- **Karma meter** (-100 to +100)
-- **Family bond meter** (0-100%)
-- Choices affect dialogue, missions, buffs/debuffs
-- Multiple endings based on cumulative choices
-
-### Mini-Games
-- 🥁 **Boduberu** - Rhythm tap game (Web Audio API)
-- 🎣 **Fishing** - Timing-based catch
-- 🎤 **Charisma/Speech** - Word-match persuasion
-- 💰 **Crypto Trading** - Buy/sell simulation
-- 🗺️ **Heist Planning** - Choose approach (stealth/bribe/assault)
-- 🤿 **Underwater Diving** - Oxygen management
-- 💪 **Prison Workout** - Button mashing
-- 🎤 **Presidential Debate** - Argument selection
-
-### Maps & Locations
-- **Malé Districts**: Maafannu, Henveiru, Galolhu, Machchangolhi
-- **Hulhumalé**: Phase 1, Phase 2, Industrial Zone
-- **Addu City**: Hithadhoo, Maradhoo, Feydhoo, Gan
-- **Fuvahmulah**: Thoondu Beach, Bandaara Lake
-- **Resorts**: One&Only Reethi Rah, Soneva Fushi style
-- **Political**: Parliament, Presidential Palace, MNDF HQ
-- **Prison**: Dhoonidhoo
-
-### Vehicles
-- 🚤 Dhoni (traditional boat)
-- 🏍️ Motorcycle
-- 🚀 Speedboat
-- ✈️ Seaplane
-
-### Weather System
-- Monsoon effects (visibility, boat sway)
-- Day/night cycle
-- Dynamic atmosphere per location
-
-### Radio Satire
-- **Raajje FM** - Government propaganda
-- **Freedom FM** - Underground truth
-- 2025 updates (Gang Act hypocrisy, Drugs Act death penalty)
-
-### Save/Load System
-- LocalStorage persistence
-- Saves: Act, mission, karma, family, gangs, money, choices, upgrades, ending
-- Load any unlocked act
-
-### Upgrade System
-- Skill trees: Combat, Stealth, Charisma, Piloting
-- Family buffs
-- Faisaa-based purchases
+### New Features
+- **In-Game Chat System**: Communicate with NPCs and receive quests. (Hotkey: **C**)
+- **Graphics Search System**: Search and manage in-game voxel assets. (Hotkey: **F**)
 
 ---
 
-## 📁 File Structure
+## 📁 File Structure (Current Edition)
 
-```
-rta-game/
-├── index.html      # Main HTML with embedded CSS (24KB)
-├── game.js         # Core engine + Act 1 (227KB)
-├── act2.js         # Act 2: Malé Core Wars (34KB)
-├── act3.js         # Act 3: Synthetic Surge (45KB)
-├── act4.js         # Act 4: Parliament Plague (37KB)
-├── act5.js         # Act 5: Prison & Redemption (38KB)
-├── act6.js         # Act 6: Southern Empire (34KB)
-├── act7.js         # Act 7: Resort Wars (40KB)
-├── act8.js         # Act 8: The Reckoning (31KB)
-├── act9.js         # Act 9: Election Chaos (29KB)
-├── act10.js        # Act 10 & Epilogue (25KB)
-└── README.md       # This file
-```
+The repository is now organized to prioritize the Maldivian Edition. Legacy files are archived.
 
-**Total Size**: ~540KB (fully self-contained, no external dependencies)
+| File/Directory | Purpose |
+|---|---|
+| `maldives-edition.html` | **Main Entry Point (Recommended)** |
+| `maldives-game-main.js` | Core game engine for the Maldivian Edition |
+| `voxel-renderer.js` | Voxel-based rendering system |
+| `map-data-loader.js` | Map data and OSM integration |
+| `chat-system.js` | In-game chat and dialogue system |
+| `graphics-search-system.js` | Graphics asset search and management |
+| `ui-hud.js` | HUD and UI components |
+| `assets/` | Contains images and other media |
+| `archive/` | **Legacy files** (Original Canvas and WebGL Editions) |
+| `MALDIVIAN_EDITION_README.md` | Detailed documentation for this edition |
+| `README_PROJECT_STRUCTURE.md` | Guide to all editions and file organization |
 
 ---
 
-## 🎯 Controls
+## 🚀 Running the Game
 
-### Keyboard
-| Key | Action |
-|-----|--------|
-| WASD / Arrows | Move |
-| Space | Attack |
-| E | Interact |
-| Shift | Sprint |
-| Escape | Pause |
+The recommended way to run the game is using a local web server to ensure all modules load correctly.
 
-### Touch (Mobile)
-| Control | Action |
-|---------|--------|
-| Left Joystick | Move |
-| 👊 Button | Attack |
-| 🤝 Button | Interact |
-| 🏃 Button (hold) | Sprint |
-| ⏸️ Button | Pause |
+1.  **Navigate to the repository root** in your terminal.
+2.  **Start a local web server** (e.g., using Python):
+    ```bash
+    python3 -m http.server 8000
+    ```
+3.  **Open your browser** and navigate to the main entry point:
+    ```
+    http://localhost:8000/maldives-edition.html
+    ```
 
 ---
 
-## 🇲🇻 Dhivehi Phrases Used
+## 📸 Screenshots Gallery
+
+<!-- Placeholder for Screenshots Gallery -->
+See the `assets/images/cover_image.md` file for a list of required screenshots.
+
+---
+
+## 🇲🇻 Dhivehi Phrases Used (Still Relevant)
 
 | Dhivehi | English |
-|---------|---------|
+|---|---|
 | Aharen | I/Me |
 | Kaley | You |
 | Mashakah | We/Us |
@@ -145,7 +107,7 @@ rta-game/
 
 ---
 
-## 🏛️ Historical Context
+## 🏛️ Historical Context (Still Relevant)
 
 The game references real events in Maldivian history:
 
@@ -160,42 +122,18 @@ The game references real events in Maldivian history:
 
 ---
 
-## 🚀 Running the Game
+## 📄 Specialized Editions
 
-1. Open `index.html` in any modern browser
-2. Or serve via local server:
-   ```bash
-   python3 -m http.server 8080
-   ```
-3. Navigate to `http://localhost:8080`
+Detailed information for other editions is available in the `archive/` directory and the `README_PROJECT_STRUCTURE.md` file.
 
----
-
-## 📱 Mobile Optimization
-
-- Responsive canvas scaling
-- Large touch targets (44px minimum)
-- Virtual joystick with dead zone
-- Optimized for 60fps on mobile devices
-- Gesture support for scrolling menus
-
----
-
-## 🏆 Achievements
-
-Track your progress across multiple playthroughs:
-- Complete each act
-- Unlock all 4 endings
-- Recruit all 83 gangs
-- Max out all skill trees
-- Complete all side missions
+- [**WebGL Edition Details**](WEBGL_EDITION_README.md)
+- [**Project Structure Guide**](README_PROJECT_STRUCTURE.md)
 
 ---
 
 ## 📜 License
 
-This game prototype is based on the provided Game Bible.
-All Maldivian cultural elements are used respectfully.
+*(Placeholder - Will be added in the next step)*
 
 ---
 

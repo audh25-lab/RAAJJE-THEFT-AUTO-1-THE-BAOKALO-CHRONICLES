@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raajje Theft Auto 1: The Baokalo Chronicles - Maldivian Edition</title>
+    <meta name="description" content="A high-fidelity voxel-art game set in the Maldives featuring authentic geography, local culture, and immersive storytelling.">
+    <meta name="keywords" content="game, maldives, voxel, webgl, three.js, theft-auto-parody">
+    <meta name="author" content="audh25-lab">
+    <meta property="og:title" content="Raajje Theft Auto 1: The Baokalo Chronicles">
+    <meta property="og:description" content="Experience the Maldivian Edition - a voxel-art game with real map data and authentic cultural elements.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://audh25-lab.github.io/RAAJJE-THEFT-AUTO-1-THE-BAOKALO-CHRONICLES/">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 600px;
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #FF1493, #00FF00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 15px 40px;
+            margin: 10px;
+            background: linear-gradient(135deg, #FF1493, #00BFFF);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 20, 147, 0.4);
+        }
+        
+        .info {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info p {
+            margin: 10px 0;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #FF1493;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🇲🇻 RAAJJE THEFT AUTO 1</h1>
+        <p class="subtitle">The Baokalo Chronicles - Maldivian Edition</p>
+        
+        <button class="button" onclick="startGame()">🎮 Play Now</button>
+        <a href="https://github.com/audh25-lab/RAAJJE-THEFT-AUTO-1-THE-BAOKALO-CHRONICLES" class="button">📖 GitHub</a>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Launching game...</span>
+        </div>
+        
+        <div class="info">
+            <p><strong>Maldivian Edition Features:</strong></p>
+            <p>✨ Voxel-art graphics with pixel-perfect rendering</p>
+            <p>🗺️ Real OpenStreetMap data for Malé and Hulhumale</p>
+            <p>🎤 In-game chat and NPC interactions</p>
+            <p>🔍 Graphics asset search system</p>
+            <p>⛵ Authentic Maldivian vehicles and architecture</p>
+        </div>
+    </div>
+    
+    <script>
+        function startGame() {
+            document.getElementById('loading').style.display = 'block';
+            setTimeout(() => {
+                window.location.href = './maldives-edition.html';
+            }, 500);
+        }
+        
+        // Auto-redirect after 3 seconds if user doesn't click
+        // Uncomment to enable auto-redirect
+        // setTimeout(() => {
+        //     window.location.href = './maldives-edition.html';
+        // }, 3000);
+    </script>
+</body>
+</html>

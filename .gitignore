@@ -1,0 +1,54 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Build/Dependency Files
+/node_modules
+/dist
+/build
+/temp
+/tmp
+
+# Log Files
+*.log
+
+# Editor/IDE Files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# WPS Office Files (since the user is using it)
+*.wps
+*.et
+*.dps
+*.bak
+*.tmp
+
+# Game-specific files to ignore
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.tgz
+*.gz
+*.out
+*.exe
+*.dll
+*.so
+*.o
+*.a
+*.lib
+*.pdb
+*.obj
+*.class
+*.pyc
+__pycache__/
+*.swp
+*~
+# Ignore the archive directory for cleaner commits, though we've already moved files
+/archive/
+
+# Ignore the assets folder content if it gets too large, but keep the folder
+# assets/*
+# !assets/
