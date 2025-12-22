@@ -6,6 +6,8 @@ import * as THREE from 'three';
 import { VoxelRenderer } from './voxel-renderer.js';
 import { MapDataLoader } from './map-data-loader.js';
 import { UIHud } from './ui-hud.js';
+import { ChatSystem } from './chat-system.js';
+import { GraphicsSearchSystem } from './graphics-search-system.js';
 
 class MaldivesGame {
     constructor() {
@@ -15,6 +17,8 @@ class MaldivesGame {
         this.voxelRenderer = null;
         this.mapDataLoader = null;
         this.uiHud = null;
+        this.chatSystem = null;
+        this.graphicsSearchSystem = null;
         this.clock = new THREE.Clock();
         this.gameState = {
             player: {
@@ -74,20 +78,30 @@ class MaldivesGame {
         // 7. Initialize UI/HUD
         this.uiHud = new UIHud();
 
-        // 8. Load and render the Maldivian city
+        // 8. Initialize Chat System
+        this.chatSystem = new ChatSystem();
+
+        // 9. Initialize Graphics Search System
+        this.graphicsSearchSystem = new GraphicsSearchSystem();
+
+        // 10. Load and render the Maldivian city
         this.loadMaldivianCity();
 
-        // 9. Create player character
+        // 11. Create player character
         this.createPlayer();
 
-        // 10. Setup Input Handlers
+        // 12. Setup UI Components
+        this.setupUIComponents();
+
+        // 13. Setup Input Handlers
         this.setupInputHandlers();
 
-        // 11. Setup Event Listeners
+        // 14. Setup Event Listeners
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
         window.addEventListener('gameAction', this.handleGameAction.bind(this), false);
+        window.addEventListener('chatUpdated', this.onChatUpdated.bind(this), false);
 
-        // 12. Start Game Loop
+        // 15. Start Game Loop
         this.animate();
     }
 
@@ -200,13 +214,49 @@ class MaldivesGame {
         this.playerCharacter = playerCharacter;
     }
 
+    setupUIComponents() {
+        // Add chat UI to the page
+        const chatUI = this.chatSystem.createChatUI();
+        document.getElementById('game-container').appendChild(chatUI);
+
+        // Add graphics search UI to the page
+        const searchUI = this.graphicsSearchSystem.createSearchUI();
+        document.getElementById('game-container').appendChild(searchUI);
+    }
+
     setupInputHandlers() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
+
+            // Hotkeys for chat and search
+            if (e.key === 'c' || e.key === 'C') {
+                this.toggleChat();
+            }
+            if (e.key === 'f' || e.key === 'F') {
+                this.toggleSearch();
+            }
         });
         window.addEventListener('keyup', (e) => {
             this.keys[e.key.toLowerCase()] = false;
         });
+    }
+
+    toggleChat() {
+        const chatUI = document.getElementById('chat-system');
+        if (chatUI) {
+            chatUI.style.display = chatUI.style.display === 'none' ? 'flex' : 'none';
+        }
+    }
+
+    toggleSearch() {
+        const searchUI = document.getElementById('graphics-search');
+        if (searchUI) {
+            searchUI.style.display = searchUI.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    onChatUpdated(event) {
+        console.log('Chat updated:', event.detail);
     }
 
     handleGameAction(event) {
