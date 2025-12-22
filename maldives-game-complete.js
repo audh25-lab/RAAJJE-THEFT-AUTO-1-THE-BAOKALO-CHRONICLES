@@ -6,8 +6,8 @@ console.log('Loading VoxelRenderer...');
 import { VoxelRenderer } from './voxel-renderer.js';
 // console.log('Loading OSMProcessor...');
 // import { OSMProcessor } from './osm-processor.js';
-// console.log('Loading PlayerPhysics...');
-// import { PlayerPhysics } from './player-physics.js';
+console.log('Loading PlayerPhysics...');
+import { PlayerPhysics } from './player-physics.js';
 console.log('Loading NPCManager...');
 import { NPCManager } from './npc-ai.js';
 console.log('Loading MissionManager...');
@@ -56,7 +56,7 @@ class MaldivesGameComplete {
         try {
          new VoxelRenderer(this.scene, 1.0);
             new OSMProcessor();
-            new PlayerPhysics(this.scene, null);
+         new PlayerPhysics(this.scene, null);
            new NPCManager(this.scene);          new MissionManager();         new ChatSystem();          new GraphicsSearchSystem();           new UIHud();         new VehicleManager(this.scene);       // new AdvancedShaders();
             // new AudioSystem();
             // new GameStateManager();         console.log('All modules instantiated successfully.');
