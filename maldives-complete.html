@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raajje Theft Auto 1: The Baokalo Chronicles - Maldivian Edition (Complete)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: linear-gradient(135deg, #87CEEB 0%, #E0F6FF 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Loading screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: #fff;
+        }
+
+        .loading-title {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #FF1493, #00FF00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #FF1493, #00BFFF);
+            width: 0%;
+            animation: loading 3s ease-in-out forwards;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 20px;
+        }
+
+        /* Controls info */
+        #controls-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-item {
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-item:last-child {
+            border-bottom: none;
+        }
+
+        .key {
+            color: #FFD700;
+            font-weight: 700;
+        }
+
+        /* FPS counter */
+        #fps-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00FF00;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .loading-title {
+                font-size: 32px;
+            }
+
+            #controls-info {
+                max-width: 200px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <div id="loading-screen">
+        <div class="loading-content">
+            <div class="loading-title">🇲🇻 RAAJJE THEFT AUTO 1</div>
+            <div style="font-size: 18px; color: rgba(255, 255, 255, 0.7); margin-bottom: 30px;">
+                The Baokalo Chronicles - Maldivian Edition
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <div class="loading-text">Loading the complete Maldivian world...</div>
+        </div>
+    </div>
+
+    <div id="controls-info">
+        <div style="font-weight: 700; margin-bottom: 10px; color: #FFD700;">⌨️ CONTROLS</div>
+        <div class="control-item"><span class="key">WASD</span> - Move</div>
+        <div class="control-item"><span class="key">SHIFT</span> - Sprint</div>
+        <div class="control-item"><span class="key">SPACE</span> - Jump</div>
+        <div class="control-item"><span class="key">E</span> - Interact with NPCs</div>
+        <div class="control-item"><span class="key">C</span> - Toggle Chat</div>
+        <div class="control-item"><span class="key">F</span> - Toggle Search</div>
+        <div class="control-item"><span class="key">ESC</span> - Pause</div>
+    </div>
+
+    <div id="fps-counter">FPS: 0</div>
+
+    <!-- Three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Game modules -->
+    <script type="module">
+        import { MaldivesGameComplete } from './maldives-game-complete.js';
+
+        // Hide loading screen after 3 seconds
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.style.opacity = '0';
+            loadingScreen.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }, 3000);
+
+        // FPS counter
+        let frameCount = 0;
+        let lastTime = Date.now();
+        setInterval(() => {
+            const currentTime = Date.now();
+            const fps = Math.round(frameCount * 1000 / (currentTime - lastTime));
+            document.getElementById('fps-counter').textContent = `FPS: ${fps}`;
+            frameCount = 0;
+            lastTime = currentTime;
+        }, 1000);
+
+        // Count frames
+        const originalRAF = window.requestAnimationFrame;
+        window.requestAnimationFrame = function(callback) {
+            frameCount++;
+            return originalRAF(callback);
+        };
+    </script>
+</body>
+</html>
