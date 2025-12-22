@@ -1,7 +1,7 @@
 // npc-ai.js
 // Comprehensive NPC AI System with Pathfinding and Behavior Trees
 
-import * as THREE from 'three';
+
 
 class NPC {
     constructor(id, name, position, type = 'civilian') {
