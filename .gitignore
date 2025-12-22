@@ -46,8 +46,7 @@ Thumbs.db
 __pycache__/
 *.swp
 *~
-# Ignore the archive directory for cleaner commits, though we've already moved files
-/archive/
+# Archive directory is tracked for historical reference
 
 # Ignore the assets folder content if it gets too large, but keep the folder
 # assets/*
