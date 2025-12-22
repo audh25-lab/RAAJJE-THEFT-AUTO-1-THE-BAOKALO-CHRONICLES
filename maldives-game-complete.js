@@ -2,8 +2,8 @@
 // Simplified version for debugging module imports
 
 // THREE is loaded globally via CDN in maldives-complete.html
-// console.log('Loading VoxelRenderer...');
-// import { VoxelRenderer } from './voxel-renderer.js';
+console.log('Loading VoxelRenderer...');
+import { VoxelRenderer } from './voxel-renderer.js';
 // console.log('Loading OSMProcessor...');
 // import { OSMProcessor } from './osm-processor.js';
 // console.log('Loading PlayerPhysics...');
@@ -54,7 +54,7 @@ class MaldivesGameComplete {
 
         // Test module instantiation
         try {
-            new VoxelRenderer(this.scene, 1.0);
+         new VoxelRenderer(this.scene, 1.0);
             new OSMProcessor();
             new PlayerPhysics(this.scene, null);
             new NPCManager(this.scene);
