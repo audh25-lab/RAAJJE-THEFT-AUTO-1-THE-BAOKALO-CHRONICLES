@@ -1,7 +1,7 @@
 // voxel-renderer.js
 // Voxel-based rendering system with pixel art styling for Maldivian game
 
-import * as THREE from 'three';
+// THREE is loaded globally via CDN in maldives-complete.html
 
 class VoxelRenderer {
     constructor(scene, voxelSize = 1.0) {
