@@ -1,6 +1,8 @@
 // player-physics.js
 // Comprehensive Player Physics and Collision Detection System
 
+import * as THREE from 'three';
+
 class PlayerPhysics {
     constructor(scene, voxelWorld) {
         this.scene = scene;

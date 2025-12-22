@@ -3,6 +3,8 @@
 
 // THREE is loaded globally via CDN in maldives-complete.html
 
+import * as THREE from 'three';
+
 class VoxelRenderer {
     constructor(scene, voxelSize = 1.0) {
         this.scene = scene;

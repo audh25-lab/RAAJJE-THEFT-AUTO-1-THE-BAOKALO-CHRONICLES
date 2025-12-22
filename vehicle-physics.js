@@ -1,6 +1,8 @@
 // vehicle-physics.js
 // Vehicle Physics and Control System for Dhoni Boats and Motorcycles
 
+import * as THREE from 'three';
+
 class Vehicle {
     constructor(id, type, position) {
         this.id = id;

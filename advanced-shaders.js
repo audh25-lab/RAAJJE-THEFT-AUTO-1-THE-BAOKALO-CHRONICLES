@@ -1,6 +1,8 @@
 // advanced-shaders.js
 // Advanced Shader System for Water, Lighting, and Particle Effects
 
+import * as THREE from 'three';
+
 class AdvancedShaders {
     constructor() {
         this.shaders = {};

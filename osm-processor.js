@@ -2,6 +2,8 @@
 // Comprehensive OpenStreetMap to Voxel Processor
 // Converts real OSM building data into the game's voxel geometry
 
+import * as THREE from 'three';
+
 class OSMProcessor {
     constructor() {
         this.buildings = [];
