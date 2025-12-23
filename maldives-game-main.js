@@ -3,6 +3,7 @@
 // Integrates voxel rendering, map data, and game logic
 
 import * as THREE from 'three';
+import * as POSTPROCESSING from 'postprocessing';
 import { VoxelRenderer } from './voxel-renderer.js';
 import { MapDataLoader } from './map-data-loader.js';
 import { UIHud } from './ui-hud.js';
@@ -35,36 +36,37 @@ class MaldivesGame {
             weather: 'sunny'
         };
         this.keys = {};
+        this.retroMode = true;
+        this.composer = null;
         this.init();
     }
 
     init() {
         // 1. Initialize Three.js Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x87CEEB); // Sky blue
-        this.scene.fog = new THREE.Fog(0x87CEEB, 100, 200);
+        this.scene.background = new THREE.Color(0x00BFFF); // Vibrant Deep Sky Blue
 
-        // 2. Setup Camera (Isometric View)
+        // 2. Setup Camera (Flat Top-Down View)
         const aspect = window.innerWidth / window.innerHeight;
-        const frustumSize = 80;
+        const zoom = 60; 
         this.camera = new THREE.OrthographicCamera(
-            frustumSize * aspect / -2,
-            frustumSize * aspect / 2,
-            frustumSize / 2,
-            frustumSize / -2,
-            1,
-            1000
+            -zoom * aspect, zoom * aspect,
+            zoom, -zoom,
+            0.1, 1000
         );
-        this.camera.position.set(50, 50, 50);
+        this.camera.position.set(0, 80, 0); 
         this.camera.lookAt(0, 0, 0);
 
         // 3. Setup WebGL Renderer
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = new THREE.WebGLRenderer({ antialias: false });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setPixelRatio(1.0); // Fixed low-res for crisp pixels
         this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+        this.renderer.shadowMap.type = THREE.PCFShadowMap;
         document.getElementById('game-container').appendChild(this.renderer.domElement);
+
+        // 3.1 Setup Post-Processing
+        this.setupPostProcessing();
 
         // 4. Setup Lighting
         this.setupLighting();
@@ -105,25 +107,35 @@ class MaldivesGame {
         this.animate();
     }
 
+    setupPostProcessing() {
+        this.composer = new POSTPROCESSING.EffectComposer(this.renderer);
+        this.composer.addPass(new POSTPROCESSING.RenderPass(this.scene, this.camera));
+
+        // Pixelation Effect
+        const pixelationEffect = new POSTPROCESSING.PixelationEffect(4.0);
+        const effectPass = new POSTPROCESSING.EffectPass(this.camera, pixelationEffect);
+        this.composer.addPass(effectPass);
+    }
+
     setupLighting() {
-        // Ambient light
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        // Ambient light - brighter for retro look
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambientLight);
 
         // Directional light (sun)
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        directionalLight.position.set(100, 100, 100);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        directionalLight.position.set(50, 100, 50);
         directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.mapSize.width = 1024; // Lower res shadows for retro feel
+        directionalLight.shadow.mapSize.height = 1024;
         directionalLight.shadow.camera.left = -100;
         directionalLight.shadow.camera.right = 100;
         directionalLight.shadow.camera.top = 100;
         directionalLight.shadow.camera.bottom = -100;
         this.scene.add(directionalLight);
 
-        // Hemisphere light for better ambient lighting
-        const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x000000, 0.6);
+        // Hemisphere light for vibrant colors
+        const hemiLight = new THREE.HemisphereLight(0x00BFFF, 0x006400, 0.6);
         this.scene.add(hemiLight);
     }
 
@@ -141,22 +153,9 @@ class MaldivesGame {
                 building.depth,
                 building.height,
                 building.color,
-                0xFF6B35
+                0xFF0000 // Pure Red Roof
             );
             this.scene.add(voxelBuilding);
-
-            // Add windows to buildings (temporarily disabled due to bug in voxel-renderer.js)
-            /*
-            if (building.height > 1) {
-                this.voxelRenderer.createWindowsOnFace(
-                    voxelBuilding,
-                    building.x,
-                    building.z,
-                    building.height,
-                    0xFFFF00
-                );
-            }
-            */
         });
 
         // Render roads
@@ -199,7 +198,7 @@ class MaldivesGame {
             const dhoni = this.voxelRenderer.createDhoni(
                 Math.random() * 10 - 5,
                 -10 + i * 3,
-                [0x1E90FF, 0x00CED1, 0xFF6B35][i]
+                [0x1E90FF, 0x00CED1, 0xFF4500][i]
             );
             this.scene.add(dhoni);
         }
@@ -217,20 +216,21 @@ class MaldivesGame {
     }
 
     setupUIComponents() {
-        // UI components are initialized and appended to the DOM in their respective constructors.
-        // This function is left empty to maintain the structure but prevent redundant DOM manipulation.
     }
 
     setupInputHandlers() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
 
-            // Hotkeys for chat and search
             if (e.key === 'c' || e.key === 'C') {
                 this.toggleChat();
             }
             if (e.key === 'f' || e.key === 'F') {
                 this.toggleSearch();
+            }
+            if (e.key === 'p' || e.key === 'P') {
+                this.retroMode = !this.retroMode;
+                console.log("Retro Mode:", this.retroMode);
             }
         });
         window.addEventListener('keyup', (e) => {
@@ -278,12 +278,10 @@ class MaldivesGame {
 
     playerAttack() {
         console.log('Player attacked!');
-        // Add attack animation and logic here
     }
 
     playerInteract() {
         console.log('Player interacted!');
-        // Check for nearby NPCs or objects
         this.uiHud.showDialogue('Local Fisherman', 'Welcome to Malé! Have you seen any dhonis?');
     }
 
@@ -297,16 +295,15 @@ class MaldivesGame {
 
     toggleMenu() {
         console.log('Menu toggled!');
-        // Implement menu logic here
     }
 
     onWindowResize() {
         const aspect = window.innerWidth / window.innerHeight;
-        const frustumSize = 80;
-        this.camera.left = frustumSize * aspect / -2;
-        this.camera.right = frustumSize * aspect / 2;
-        this.camera.top = frustumSize / 2;
-        this.camera.bottom = frustumSize / -2;
+        const zoom = 60;
+        this.camera.left = -zoom * aspect;
+        this.camera.right = zoom * aspect;
+        this.camera.top = zoom;
+        this.camera.bottom = -zoom;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
@@ -324,10 +321,15 @@ class MaldivesGame {
             this.gameState.player.position.add(moveVector);
             this.playerCharacter.position.copy(this.gameState.player.position);
 
-            // Update camera to follow player
-            this.camera.position.x = this.gameState.player.position.x + 50;
-            this.camera.position.z = this.gameState.player.position.z + 50;
-            this.camera.lookAt(this.gameState.player.position.x, 0, this.gameState.player.position.z);
+            // Update camera to follow player (Top-down follow)
+            const targetX = this.gameState.player.position.x;
+            const targetZ = this.gameState.player.position.z;
+            
+            // Smooth camera follow
+            this.camera.position.x += (targetX - this.camera.position.x) * 0.1;
+            this.camera.position.z += (targetZ - this.camera.position.z) * 0.1;
+            this.camera.position.y = 80;
+            this.camera.lookAt(this.camera.position.x, 0, this.camera.position.z);
 
             // Update minimap
             this.uiHud.updateMinimap(
@@ -339,10 +341,8 @@ class MaldivesGame {
     }
 
     updateGameState(delta) {
-        // Update time of day (cycle every 5 minutes = 300 seconds)
         this.gameState.timeOfDay = (this.gameState.timeOfDay + (delta / 300) * 24) % 24;
 
-        // Stamina regeneration
         if (this.gameState.player.stamina < 100) {
             this.gameState.player.stamina += 10 * delta;
             if (this.gameState.player.stamina > 100) {
@@ -350,10 +350,8 @@ class MaldivesGame {
             }
         }
 
-        // Update player position
         this.updatePlayer(delta);
 
-        // Update UI
         this.uiHud.updateStats(
             this.gameState.player.health,
             this.gameState.player.stamina,
@@ -361,7 +359,6 @@ class MaldivesGame {
             this.gameState.player.money
         );
 
-        // Update mission tracker
         this.uiHud.updateMissionTracker(
             'Explore Malé',
             'Discover the beauty of the Maldivian capital and complete local missions.'
@@ -371,16 +368,16 @@ class MaldivesGame {
     animate() {
         requestAnimationFrame(this.animate.bind(this));
         const delta = this.clock.getDelta();
-
-        // Update game state
         this.updateGameState(delta);
-
-        // Render the scene
-        this.renderer.render(this.scene, this.camera);
+        
+        if (this.retroMode && this.composer) {
+            this.composer.render();
+        } else {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 }
 
-// Initialize the game when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     try {
         window.maldivesGame = new MaldivesGame();

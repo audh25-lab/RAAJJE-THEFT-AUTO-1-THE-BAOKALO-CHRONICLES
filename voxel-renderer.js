@@ -3,65 +3,28 @@
 
 import * as THREE from 'three';
 
-
-
 class VoxelRenderer {
     constructor(scene, voxelSize = 1.0) {
         this.scene = scene;
         this.voxelSize = voxelSize;
         this.voxelMeshes = [];
-        this.colorPalette = this.initializeMaldivianColorPalette();
-        this.pixelArtShader = this.createPixelArtShader();
-    }
-
-    // Initialize Maldivian tropical color palette
-    initializeMaldivianColorPalette() {
-        return {
-            // Building colors
-            residentialPink: 0xFF1493,      // Hot pink
-            residentialBlue: 0x0077BE,      // Ocean blue
-            residentialGreen: 0x00FF00,     // Lime green
-            residentialOrange: 0xFF8C00,    // Dark orange
-            residentialYellow: 0xFFFF00,    // Bright yellow
-            
-            // Structural colors
-            roofRed: 0xFF6B35,              // Terracotta red
-            roofBrown: 0x8B4513,            // Saddle brown
-            wallWhite: 0xF5F5F5,            // Off-white
-            wallCream: 0xFFF8DC,            // Cornsilk
-            
-            // Natural colors
-            waterBlue: 0x0077BE,            // Ocean blue
-            sandYellow: 0xF4D03F,           // Sand yellow
-            grassGreen: 0x228B22,           // Forest green
-            palmGreen: 0x32CD32,            // Lime green
-            
-            // Vehicle colors
-            dhoniBlue: 0x1E90FF,            // Dodger blue
-            dhoniGreen: 0x00CED1,           // Dark turquoise
-            taxiYellow: 0xFFD700,           // Gold
-            
-            // UI colors
-            neonPink: 0xFF69B4,             // Hot pink
-            neonGreen: 0x39FF14,            // Neon green
-            neonBlue: 0x00D9FF,             // Neon blue
-            
-            // Neutral colors
-            black: 0x000000,
-            darkGray: 0x333333,
-            gray: 0x808080,
-            lightGray: 0xCCCCCC,
-            white: 0xFFFFFF
+        this.palette = {
+            grass: 0x32CD32,
+            sand: 0xF4A460,
+            water: 0x1E90FF,
+            road: 0x696969,
+            building: 0xFFFFFF,
+            roof: 0x8B4513,
+            palm_trunk: 0x8B4513,
+            palm_leaves: 0x228B22
         };
-    }
-
-    // Create pixel art shader for upscaling effect
-    createPixelArtShader() {
-        return {
+        
+        // Pixel art shader parameters
+        this.pixelShader = {
             uniforms: {
-                texture: { value: null },
-                pixelSize: { value: 2.0 },
-                resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+                "tDiffuse": { value: null },
+                "resolution": { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                "pixelSize": { value: 4.0 }
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -71,14 +34,14 @@ class VoxelRenderer {
                 }
             `,
             fragmentShader: `
-                uniform sampler2D texture;
-                uniform float pixelSize;
+                uniform sampler2D tDiffuse;
                 uniform vec2 resolution;
+                uniform float pixelSize;
                 varying vec2 vUv;
-                
                 void main() {
-                    vec2 pixelCoord = floor(vUv * resolution / pixelSize) * pixelSize / resolution;
-                    gl_FragColor = texture2D(texture, pixelCoord);
+                    vec2 dxy = pixelSize / resolution;
+                    vec2 pixelCoord = dxy * floor(vUv / dxy);
+                    gl_FragColor = texture2D(tDiffuse, pixelCoord);
                 }
             `
         };
@@ -87,11 +50,9 @@ class VoxelRenderer {
     // Create a voxel block (single cube)
     createVoxelBlock(x, y, z, colorHex, size = this.voxelSize) {
         const geometry = new THREE.BoxGeometry(size, size, size);
-        const material = new THREE.MeshStandardMaterial({
+        const material = new THREE.MeshLambertMaterial({
             color: colorHex,
-            metalness: 0.1,
-            roughness: 0.8,
-            flatShading: true // Important for pixel art look
+            flatShading: true
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(x * size, y * size, z * size);
@@ -101,291 +62,148 @@ class VoxelRenderer {
         return mesh;
     }
 
-    // Create a building from voxel blocks
-    createBuilding(x, z, width, depth, height, colorHex, roofColor = 0xFF6B35) {
-        const building = new THREE.Group();
+    // Create a building from voxels
+    createBuilding(x, z, width, depth, height, color, roofColor) {
+        const buildingGroup = new THREE.Group();
         
-        // Create walls
+        // Walls
         for (let i = 0; i < width; i++) {
-            for (let j = 0; j < depth; j++) {
-                for (let k = 0; k < height; k++) {
-                    // Only create voxels on the edges (hollow building)
-                    if (i === 0 || i === width - 1 || j === 0 || j === depth - 1 || k === height - 1) {
+            for (let j = 0; j < height; j++) {
+                for (let k = 0; k < depth; k++) {
+                    // Only create outer shell for performance
+                    if (i === 0 || i === width - 1 || k === 0 || k === depth - 1) {
                         const voxel = this.createVoxelBlock(
-                            i - width / 2, 
-                            k, 
-                            j - depth / 2, 
-                            colorHex, 
-                            this.voxelSize
+                            x + i,
+                            j,
+                            z + k,
+                            color
                         );
-                        building.add(voxel);
+                        buildingGroup.add(voxel);
                     }
                 }
             }
         }
-        
-        // Create roof
+
+        // Roof
         for (let i = 0; i < width; i++) {
-            for (let j = 0; j < depth; j++) {
-                const voxel = this.createVoxelBlock(
-                    i - width / 2, 
-                    height, 
-                    j - depth / 2, 
-                    roofColor, 
-                    this.voxelSize
+            for (let k = 0; k < depth; k++) {
+                const roofVoxel = this.createVoxelBlock(
+                    x + i,
+                    height,
+                    z + k,
+                    roofColor
                 );
-                building.add(voxel);
+                buildingGroup.add(roofVoxel);
             }
         }
-        
-        // Set the building group's position to the desired world coordinates
-        building.position.set(x * this.voxelSize, 0, z * this.voxelSize);
-        
-        return building;
-    }
 
-    // Create windows on a building face
-	    createWindowsOnFace(buildingGroup, faceX, faceZ, height, windowColor = 0xFFFF00) {
-	        const windowSpacing = 2;
-	        const windowSize = 1;
-	        
-	        // The coordinates faceX and faceZ are the world coordinates of the building's origin.
-	        // We need to calculate the window's position relative to the buildingGroup's origin (0, 0, 0).
-	        // The buildingGroup's origin is set to (building.x, 0, building.z) in maldives-game-main.js.
-	        // The voxels are centered in createBuilding, so the group's position is actually the center.
-	        // Let's assume the window creation is meant to be relative to the building group's center.
-	        
-	        // This function is flawed as it uses world coordinates (faceX, faceZ) instead of local coordinates.
-	        // Since it's only called for buildings with height > 1, and the logic is simple, 
-	        // I will comment it out for now to allow the game to load, and then address it if the user reports missing windows.
-	        // For now, the main goal is to get the game to load.
-	        
-	        /*
-	        for (let y = 1; y < height; y += windowSpacing) {
-	            const windowVoxel = this.createVoxelBlock(
-	                faceX, 
-	                y, 
-	                faceZ, 
-	                windowColor, 
-	                this.voxelSize * 0.8
-	            );
-	            buildingGroup.add(windowVoxel);
-	        }
-	        */
-	    }
-
-    // Create a dhoni (traditional boat)
-    createDhoni(x, z, color = 0x1E90FF) {
-        const dhoni = new THREE.Group();
-        
-	        // Hull (boat body)
-	        const hullLength = 8;
-	        const hullWidth = 3;
-	        const hullHeight = 2;
-	        
-	        for (let i = 0; i < hullLength; i++) {
-	            for (let j = 0; j < hullWidth; j++) {
-	                for (let k = 0; k < hullHeight; k++) {
-	                    const voxel = this.createVoxelBlock(
-	                        i - Math.floor(hullLength / 2), 
-	                        k - 1, 
-	                        j - Math.floor(hullWidth / 2), 
-	                        color, 
-	                        this.voxelSize
-	                    );
-	                    dhoni.add(voxel);
-	                }
-	            }
-	        }
-        
-	        // Cabin
-	        const cabinLength = 3;
-	        const cabinWidth = 2;
-	        const cabinHeight = 2;
-	        
-	        for (let i = 0; i < cabinLength; i++) {
-	            for (let j = 0; j < cabinWidth; j++) {
-	                for (let k = 0; k < cabinHeight; k++) {
-	                    const voxel = this.createVoxelBlock(
-	                        i - Math.floor(cabinLength / 2), 
-	                        hullHeight + k, 
-	                        j - Math.floor(cabinWidth / 2), 
-	                        0xFFFFFF, 
-	                        this.voxelSize
-	                    );
-	                    dhoni.add(voxel);
-	                }
-	            }
-	        }
-        
-	        // Mast
-	        // The mast should be positioned relative to the dhoni group's origin (0,0,0)
-	        const mastVoxel = this.createVoxelBlock(
-	            0, // Center X
-	            hullHeight + cabinHeight, 
-	            0, // Center Z
-	            0x8B4513, 
-	            this.voxelSize * 0.5
-	        );
-        dhoni.add(mastVoxel);
-        
-	        // Set the dhoni group's position to the desired world coordinates
-	        dhoni.position.set(x * this.voxelSize, 0, z * this.voxelSize);
-	        return dhoni;
-    }
-
-    // Create a character voxel model
-    createCharacter(x, y, z, skinColor = 0xD2691E) {
-        const character = new THREE.Group();
-        
-	        // Head
-	        const headVoxel = this.createVoxelBlock(0, 3, 0, skinColor, this.voxelSize);
-	        character.add(headVoxel);
-	        
-	        // Body
-	        for (let i = 0; i < 2; i++) {
-	            const bodyVoxel = this.createVoxelBlock(0, 2 - i, 0, 0x1E90FF, this.voxelSize);
-	            character.add(bodyVoxel);
-	        }
-	        
-	        // Arms
-	        const leftArmVoxel = this.createVoxelBlock(-1, 2, 0, skinColor, this.voxelSize);
-	        const rightArmVoxel = this.createVoxelBlock(1, 2, 0, skinColor, this.voxelSize);
-	        character.add(leftArmVoxel);
-	        character.add(rightArmVoxel);
-	        
-	        // Legs
-	        const leftLegVoxel = this.createVoxelBlock(-0.5, 0, 0, 0x333333, this.voxelSize);
-	        const rightLegVoxel = this.createVoxelBlock(0.5, 0, 0, 0x333333, this.voxelSize);
-	        character.add(leftLegVoxel);
-	        character.add(rightLegVoxel);
-        
-	        character.position.set(x * this.voxelSize, y * this.voxelSize, z * this.voxelSize);
-	        return character;
-    }
-
-    // Create terrain tiles
-    createTerrainTile(x, z, type = 'grass') {
-        let colorHex;
-        
-        switch (type) {
-            case 'water':
-                colorHex = this.colorPalette.waterBlue;
-                break;
-            case 'sand':
-                colorHex = this.colorPalette.sandYellow;
-                break;
-            case 'road':
-                colorHex = this.colorPalette.darkGray;
-                break;
-            case 'grass':
-            default:
-                colorHex = this.colorPalette.grassGreen;
-                break;
-        }
-        
-        const tile = this.createVoxelBlock(x, -1, z, colorHex, this.voxelSize);
-        return tile;
+        return buildingGroup;
     }
 
     // Create a palm tree
     createPalmTree(x, z) {
-        const tree = new THREE.Group();
-        
+        const treeGroup = new THREE.Group();
+        const trunkHeight = 4 + Math.floor(Math.random() * 3);
+
         // Trunk
-        for (let i = 0; i < 3; i++) {
-            const trunkVoxel = this.createVoxelBlock(x, i, z, 0x8B4513, this.voxelSize);
-            tree.add(trunkVoxel);
+        for (let i = 0; i < trunkHeight; i++) {
+            const trunk = this.createVoxelBlock(x, i, z, this.palette.palm_trunk);
+            treeGroup.add(trunk);
         }
-        
-        // Foliage (crown)
-        for (let i = -2; i <= 2; i++) {
-            for (let j = -2; j <= 2; j++) {
-                if (Math.sqrt(i * i + j * j) <= 2) {
-                    const foliageVoxel = this.createVoxelBlock(
-                        x + i, 
-                        3, 
-                        z + j, 
-                        this.colorPalette.palmGreen, 
-                        this.voxelSize
-                    );
-                    tree.add(foliageVoxel);
-                }
-            }
-        }
-        
-        return tree;
-    }
 
-    // Merge voxel meshes for performance
-    mergeVoxelMeshes() {
-        const geometries = [];
-        const materials = [];
-        
-        this.voxelMeshes.forEach(mesh => {
-            geometries.push(mesh.geometry);
-            materials.push(mesh.material);
+        // Leaves
+        const leafPositions = [
+            [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1],
+            [2, -1, 0], [-2, -1, 0], [0, -1, 2], [0, -1, -2]
+        ];
+
+        leafPositions.forEach(pos => {
+            const leaf = this.createVoxelBlock(
+                x + pos[0],
+                trunkHeight - 1 + pos[1],
+                z + pos[2],
+                this.palette.palm_leaves
+            );
+            treeGroup.add(leaf);
         });
-        
-        // This is a simplified approach; for production, use THREE.BufferGeometryUtils.mergeGeometries
-        // and create a single merged mesh
+
+        return treeGroup;
     }
 
-    // Apply pixel art post-processing effect
-    applyPixelArtEffect(renderer, scene, camera) {
-        // Create render target for pixel art effect
-        const pixelRenderTarget = new THREE.WebGLRenderTarget(
-            window.innerWidth / 2,
-            window.innerHeight / 2
-        );
-        
-        // Render scene to render target
-        renderer.setRenderTarget(pixelRenderTarget);
-        renderer.render(scene, camera);
-        renderer.setRenderTarget(null);
-        
-        return pixelRenderTarget;
-    }
+    // Create a Dhoni (Maldivian boat)
+    createDhoni(x, z, color) {
+        const dhoniGroup = new THREE.Group();
+        const length = 5;
+        const width = 3;
 
-    // Get color from palette by name
-    getColor(colorName) {
-        return this.colorPalette[colorName] || this.colorPalette.white;
-    }
-
-    // Create a complete city block
-    createCityBlock(centerX, centerZ, blockSize = 10) {
-        const block = new THREE.Group();
-        
-        // Create buildings in a grid
-        const buildingSize = 3;
-        const spacing = 1;
-        
-        for (let i = 0; i < blockSize; i += buildingSize + spacing) {
-            for (let j = 0; j < blockSize; j += buildingSize + spacing) {
-                const buildingHeight = Math.floor(Math.random() * 4) + 3;
-                const colorIndex = Math.floor(Math.random() * 5);
-                const colors = [
-                    this.colorPalette.residentialPink,
-                    this.colorPalette.residentialBlue,
-                    this.colorPalette.residentialGreen,
-                    this.colorPalette.residentialOrange,
-                    this.colorPalette.residentialYellow
-                ];
+        // Hull
+        for (let i = 0; i < length; i++) {
+            for (let k = 0; k < width; k++) {
+                // Tapered ends
+                if ((i === 0 || i === length - 1) && (k === 0 || k === width - 1)) continue;
                 
-                const building = this.createBuilding(
-                    centerX + i,
-                    centerZ + j,
-                    buildingSize,
-                    buildingSize,
-                    buildingHeight,
-                    colors[colorIndex],
-                    this.colorPalette.roofRed
-                );
-                block.add(building);
+                const hull = this.createVoxelBlock(x + i, 0.2, z + k, color);
+                dhoniGroup.add(hull);
             }
         }
+
+        // Mast
+        for (let j = 1; j < 4; j++) {
+            const mast = this.createVoxelBlock(x + 2, j, z + 1, 0x8B4513);
+            dhoniGroup.add(mast);
+        }
+
+        return dhoniGroup;
+    }
+
+    // Create terrain tile
+    createTerrainTile(x, z, type) {
+        let color;
+        let y = 0;
+
+        switch (type) {
+            case 'grass': color = this.palette.grass; break;
+            case 'sand': color = this.palette.sand; break;
+            case 'water': color = this.palette.water; y = -0.5; break;
+            case 'road': color = this.palette.road; y = 0.05; break;
+            default: color = 0xCCCCCC;
+        }
+
+        const tile = this.createVoxelBlock(x, y, z, color);
+        this.scene.add(tile);
+        return tile;
+    }
+
+    // Create character
+    createCharacter(x, y, z, color) {
+        const charGroup = new THREE.Group();
         
-        return block;
+        // Body
+        const body = this.createVoxelBlock(0, 1, 0, color);
+        charGroup.add(body);
+        
+        // Head
+        const head = this.createVoxelBlock(0, 2, 0, 0xFFDAB9);
+        charGroup.add(head);
+        
+        // Legs
+        const legL = this.createVoxelBlock(-0.3, 0, 0, 0x000080, 0.4);
+        const legR = this.createVoxelBlock(0.3, 0, 0, 0x000080, 0.4);
+        charGroup.add(legL);
+        charGroup.add(legR);
+
+        charGroup.position.set(x, y, z);
+        return charGroup;
+    }
+
+    // Clear all voxels
+    clear() {
+        this.voxelMeshes.forEach(mesh => {
+            this.scene.remove(mesh);
+            mesh.geometry.dispose();
+            mesh.material.dispose();
+        });
+        this.voxelMeshes = [];
     }
 }
 
