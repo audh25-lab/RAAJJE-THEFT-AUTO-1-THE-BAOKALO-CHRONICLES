@@ -1,5 +1,5 @@
 // player-physics.js
-// Comprehensive Player Physics and Collision Detection System
+// Comprehensive Player Physics and Collision Detection System\nimport * as THREE from 'three';
 
 
 

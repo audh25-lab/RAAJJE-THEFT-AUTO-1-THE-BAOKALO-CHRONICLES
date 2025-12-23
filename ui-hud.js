@@ -66,24 +66,30 @@ class UIHud {
         minimapContainer.innerHTML = `<canvas id="minimap-canvas"></canvas>`;
         this.hudContainer.appendChild(minimapContainer);
 
-        // Initialize minimap canvas
-        const minimapCanvas = document.getElementById('minimap-canvas');
-        const ctx = minimapCanvas.getContext('2d');
-        minimapCanvas.width = 180;
-        minimapCanvas.height = 180;
-
-        // Draw a simple minimap
-        ctx.fillStyle = '#1a3a4a';
-        ctx.fillRect(0, 0, 180, 180);
-        ctx.strokeStyle = '#778da9';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, 180, 180);
-
-        // Draw player position
-        ctx.fillStyle = '#ff0000';
-        ctx.beginPath();
-        ctx.arc(90, 90, 5, 0, Math.PI * 2);
-        ctx.fill();
+	        // Initialize minimap canvas
+	        const minimapCanvas = document.getElementById('minimap-canvas');
+	        const ctx = minimapCanvas.getContext('2d');
+	        
+	        if (!ctx) {
+	            console.error('Could not get 2D context for minimap canvas.');
+	            return;
+	        }
+	        
+	        minimapCanvas.width = 180;
+	        minimapCanvas.height = 180;
+	
+	        // Draw a simple minimap
+	        ctx.fillStyle = '#1a3a4a';
+	        ctx.fillRect(0, 0, 180, 180);
+	        ctx.strokeStyle = '#778da9';
+	        ctx.lineWidth = 2;
+	        ctx.strokeRect(0, 0, 180, 180);
+	
+	        // Draw player position
+	        ctx.fillStyle = '#ff0000';
+	        ctx.beginPath();
+	        ctx.arc(90, 90, 5, 0, Math.PI * 2);
+	        ctx.fill();
     }
 
     createMissionTracker() {
