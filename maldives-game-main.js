@@ -145,7 +145,8 @@ class MaldivesGame {
             );
             this.scene.add(voxelBuilding);
 
-            // Add windows to buildings
+            // Add windows to buildings (temporarily disabled due to bug in voxel-renderer.js)
+            /*
             if (building.height > 1) {
                 this.voxelRenderer.createWindowsOnFace(
                     voxelBuilding,
@@ -155,6 +156,7 @@ class MaldivesGame {
                     0xFFFF00
                 );
             }
+            */
         });
 
         // Render roads
@@ -215,13 +217,8 @@ class MaldivesGame {
     }
 
     setupUIComponents() {
-        // Add chat UI to the page
-        const chatUI = this.chatSystem.createChatUI();
-        document.getElementById('game-container').appendChild(chatUI);
-
-        // Add graphics search UI to the page
-        const searchUI = this.graphicsSearchSystem.createSearchUI();
-        document.getElementById('game-container').appendChild(searchUI);
+        // UI components are initialized and appended to the DOM in their respective constructors.
+        // This function is left empty to maintain the structure but prevent redundant DOM manipulation.
     }
 
     setupInputHandlers() {
@@ -385,7 +382,11 @@ class MaldivesGame {
 
 // Initialize the game when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.maldivesGame = new MaldivesGame();
+    try {
+        window.maldivesGame = new MaldivesGame();
+    } catch (e) {
+        console.error("Game initialization failed:", e);
+    }
 });
 
 export { MaldivesGame };
