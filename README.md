@@ -48,6 +48,33 @@ This repository contains the latest, most advanced version of Raajje Theft Auto 
 
 ---
 
+## 👾 Pixel-Art Edition (New)
+
+This repository now includes a complete rebuild of the game in a 2D retro pixel-art style, using pure HTML5 Canvas.
+
+### Core Technology
+- **Rendering**: HTML5 Canvas 2D
+- **Graphics**: 16x16 pixel-art sprites.
+- **Camera**: Toggleable top-down and isometric views.
+
+### Running the Pixel-Art Edition
+1.  **Navigate to the repository root** in your terminal.
+2.  **Start a local web server** (e.g., using Python):
+    ```bash
+    python3 -m http.server 8000
+    ```
+3.  **Open your browser** and navigate to the new entry point:
+    ```
+    http://localhost:8000/maldives-pixel.html
+    ```
+
+### Controls
+- **WASD/Arrow Keys**: Move player
+- **T**: Switch to Top-Down Camera
+- **I**: Switch to Isometric Camera
+
+---
+
 ## 📁 File Structure (Current Edition)
 
 The repository is now organized to prioritize the Maldivian Edition. Legacy files are archived.
